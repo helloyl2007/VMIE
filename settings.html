@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>设置 · 虚拟用户管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ============ 设计系统（与 ui.html 完全一致） ============ */
+:root{
+  --bg:#070B14;
+  --bg-2:#0A1120;
+  --panel:rgba(14,22,40,0.62);
+  --panel-solid:#0E1628;
+  --border:rgba(0,229,255,0.16);
+  --border-soft:rgba(148,163,184,0.12);
+  --cyan:#00E5FF;
+  --cyan-dim:rgba(0,229,255,0.5);
+  --amber:#FFB020;
+  --amber-dim:rgba(255,176,32,0.5);
+  --green:#00E676;
+  --red:#FF5252;
+  --purple:#A78BFA;
+  --txt:#E2E8F0;
+  --txt-mute:#8AA0BD;
+  --txt-dim:#5A6B85;
+  --grid:rgba(0,229,255,0.045);
+  --glow-cyan:0 0 24px rgba(0,229,255,0.35);
+  --glow-amber:0 0 24px rgba(255,176,32,0.35);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{
+  font-family:'Noto Sans SC','Space Grotesk',sans-serif;
+  background:var(--bg);
+  color:var(--txt);
+  font-size:13px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+
+/* ============ 背景层 ============ */
+.bg-layer{position:fixed;inset:0;z-index:0;pointer-events:none}
+.bg-radial{
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 0%, rgba(0,229,255,0.10), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 100% 100%, rgba(255,176,32,0.08), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 50% 50%, rgba(20,40,80,0.4), transparent 70%),
+    linear-gradient(180deg,#070B14 0%,#050811 100%);
+}
+.bg-grid{
+  background-image:
+    linear-gradient(var(--grid) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:48px 48px;
+  mask-image:radial-gradient(ellipse 90% 70% at 50% 40%,#000 30%,transparent 90%);
+  -webkit-mask-image:radial-gradient(ellipse 90% 70% at 50% 40%,#000 30%,transparent 90%);
+}
+.bg-noise{
+  opacity:0.04;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.bg-scan{
+  background:linear-gradient(180deg,transparent,rgba(0,229,255,0.06) 50%,transparent);
+  height:200px;
+  animation:scan 8s linear infinite;
+}
+@keyframes scan{0%{transform:translateY(-200px)}100%{transform:translateY(100vh)}}
+
+/* ============ 通用 ============ */
+.font-display{font-family:'Space Grotesk',sans-serif;letter-spacing:-0.01em}
+.font-mono{font-family:'JetBrains Mono',monospace}
+.glass{
+  background:var(--panel);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  border:1px solid var(--border-soft);
+  border-radius:10px;
+  position:relative;
+}
+.glass::before{
+  content:"";position:absolute;inset:0;border-radius:10px;pointer-events:none;
+  background:linear-gradient(135deg,rgba(255,255,255,0.04),transparent 40%);
+}
+.panel-title{
+  display:flex;align-items:center;gap:8px;
+  font-family:'Space Grotesk',sans-serif;
+  font-size:11px;font-weight:600;letter-spacing:0.12em;
+  text-transform:uppercase;color:var(--txt-mute);
+  padding:10px 14px;border-bottom:1px solid var(--border-soft);
+}
+.panel-title .dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+.panel-title .tag{margin-left:auto;font-size:10px;color:var(--cyan);letter-spacing:0.08em;font-family:'JetBrains Mono',monospace}
+
+/* ============ 按钮 ============ */
+.btn{
+  font-family:inherit;cursor:pointer;border:none;border-radius:7px;
+  font-size:12px;font-weight:600;letter-spacing:0.03em;
+  padding:9px 16px;transition:all .2s;display:inline-flex;align-items:center;gap:7px;
+}
+.btn-ghost{background:transparent;border:1px solid var(--border-soft);color:var(--txt-mute)}
+.btn-ghost:hover{border-color:var(--cyan);color:var(--cyan)}
+.btn-primary{
+  background:linear-gradient(135deg,#00E5FF,#0091EA);color:#00121A;
+  box-shadow:0 0 0 1px rgba(0,229,255,0.4),0 4px 18px rgba(0,229,255,0.3);
+}
+.btn-primary:hover{box-shadow:0 0 0 1px rgba(0,229,255,0.6),0 6px 24px rgba(0,229,255,0.5);transform:translateY(-1px)}
+.btn-primary:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+.btn-amber{
+  background:linear-gradient(135deg,#FFB020,#FF6F00);color:#1A0F00;
+  box-shadow:0 0 0 1px rgba(255,176,32,0.4),0 4px 18px rgba(255,176,32,0.3);
+}
+.btn-amber:hover{box-shadow:0 0 0 1px rgba(255,176,32,0.6),0 6px 24px rgba(255,176,32,0.5);transform:translateY(-1px)}
+.btn-amber:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+
+/* ============ 布局 ============ */
+.wrapper{position:relative;z-index:1;max-width:1320px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:14px;min-height:100vh}
+
+/* ============ 顶部栏 ============ */
+.topbar{
+  height:56px;flex-shrink:0;display:flex;align-items:center;gap:16px;padding:0 18px;
+}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-mark{
+  width:34px;height:34px;border-radius:8px;position:relative;
+  background:linear-gradient(135deg,#00E5FF,#0080FF);
+  box-shadow:0 0 18px rgba(0,229,255,0.5);
+  display:flex;align-items:center;justify-content:center;
+}
+.logo-mark::after{
+  content:"";position:absolute;inset:3px;border-radius:6px;
+  background:var(--bg);
+}
+.logo-mark svg{position:relative;z-index:1;width:18px;height:18px}
+.logo-text h1{font-family:'Space Grotesk';font-size:15px;font-weight:700;letter-spacing:0.02em}
+.logo-text p{font-size:10px;color:var(--txt-dim);letter-spacing:0.18em;text-transform:uppercase}
+.topbar-divider{width:1px;height:26px;background:var(--border-soft)}
+.topbar-title{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;color:var(--txt)}
+.topbar-sub{font-size:10px;color:var(--txt-dim);letter-spacing:0.14em;text-transform:uppercase;margin-top:2px}
+.topbar-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+
+.status-chip{display:flex;align-items:center;gap:7px;padding:6px 12px;border-radius:20px;background:rgba(148,163,184,0.06);border:1px solid var(--border-soft);font-size:11px;color:var(--txt-mute)}
+.status-chip .pulse{width:7px;height:7px;border-radius:50%;background:var(--txt-dim);position:relative}
+.status-chip .pulse.live{background:var(--green)}
+.status-chip .pulse.live::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:1px solid var(--green);animation:ping 1.6s ease-out infinite}
+.status-chip .pulse.creating{background:var(--amber)}
+.status-chip .pulse.creating::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:1px solid var(--amber);animation:ping 1.2s ease-out infinite}
+@keyframes ping{0%{transform:scale(1);opacity:1}100%{transform:scale(2.2);opacity:0}}
+.status-chip .num{color:var(--cyan);font-family:'JetBrains Mono',monospace;font-weight:500}
+
+/* ============ 主布局 ============ */
+.layout{display:grid;grid-template-columns:300px 1fr;gap:10px;flex:1;min-height:0}
+.sidebar{display:flex;flex-direction:column;overflow:hidden}
+.side-body{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px}
+.side-body::-webkit-scrollbar{width:6px}
+.side-body::-webkit-scrollbar-thumb{background:rgba(0,229,255,0.2);border-radius:3px}
+.side-body::-webkit-scrollbar-track{background:transparent}
+
+/* 行业卡片 */
+.industry-item{
+  padding:13px 14px;border:1px solid var(--border-soft);border-radius:9px;
+  background:rgba(7,11,20,0.5);cursor:pointer;transition:all .2s;
+  display:flex;align-items:center;gap:12px;text-align:left;
+  font-family:inherit;color:var(--txt-mute);width:100%;
+}
+.industry-item:hover{border-color:var(--cyan-dim);background:rgba(0,229,255,0.04);color:var(--txt)}
+.industry-item.active{
+  border-color:var(--cyan);background:rgba(0,229,255,0.08);color:var(--cyan);
+  box-shadow:0 0 0 1px rgba(0,229,255,0.2) inset,0 0 18px rgba(0,229,255,0.12);
+}
+.industry-item .ind-icon{
+  width:32px;height:32px;border-radius:7px;flex-shrink:0;
+  background:rgba(0,229,255,0.08);border:1px solid var(--border-soft);
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+  transition:all .2s;
+}
+.industry-item.active .ind-icon{background:rgba(0,229,255,0.15);border-color:var(--cyan)}
+.industry-item .ind-info{flex:1;min-width:0}
+.industry-item .ind-name{font-size:14px;font-weight:600;color:inherit}
+.industry-item .ind-meta{font-size:10px;color:var(--txt-dim);margin-top:3px;font-family:'JetBrains Mono',monospace;letter-spacing:0.04em}
+.industry-item.active .ind-meta{color:var(--cyan-dim)}
+
+/* ============ 主面板 ============ */
+.main{display:flex;flex-direction:column;overflow:hidden}
+.main-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+.main-body::-webkit-scrollbar{width:6px}
+.main-body::-webkit-scrollbar-thumb{background:rgba(0,229,255,0.2);border-radius:3px}
+.main-body::-webkit-scrollbar-track{background:transparent}
+
+.main-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.main-head .head-left{flex:1;min-width:0}
+.main-head .h-title{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;color:var(--txt)}
+.main-head .h-desc{font-size:12px;color:var(--txt-mute);margin-top:5px;line-height:1.6}
+.main-head .badge{
+  display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:20px;
+  background:rgba(148,163,184,0.06);border:1px solid var(--border-soft);font-size:11px;color:var(--txt-mute);
+  font-family:'JetBrains Mono',monospace;letter-spacing:0.02em;flex-shrink:0;
+}
+.main-head .badge .pulse{width:7px;height:7px;border-radius:50%;background:var(--amber);position:relative}
+.main-head .badge .pulse.live{background:var(--green)}
+.main-head .badge .pulse.live::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:1px solid var(--green);animation:ping 1.6s ease-out infinite}
+
+/* 生成提示条 */
+.gen-box{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  border:1px solid var(--border);border-radius:10px;padding:14px;
+  background:rgba(0,229,255,0.03);
+}
+.gen-box::before{
+  content:"";position:absolute;
+}
+.gen-actions{display:flex;gap:8px;flex-shrink:0}
+.gen-meta{font-size:12px;color:var(--txt-mute);line-height:1.7;flex:1}
+.gen-meta b{color:var(--cyan);font-weight:500}
+
+/* 数量输入弹框 */
+.count-input{
+  width:60px;text-align:center;
+  background:rgba(0,229,255,0.06);border:1px solid var(--border);border-radius:7px;
+  color:var(--cyan);font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:600;
+  padding:10px 8px;outline:none;transition:all .15s;
+}
+.count-input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,229,255,0.12)}
+.count-input::-webkit-inner-spin-button,.count-input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.quick-picks{display:flex;gap:6px;flex-wrap:wrap}
+.quick-pick{
+  padding:6px 14px;border-radius:7px;border:1px solid var(--border-soft);
+  background:transparent;color:var(--txt-mute);cursor:pointer;font-family:'JetBrains Mono',monospace;
+  font-size:13px;transition:all .15s;
+}
+.quick-pick:hover{border-color:var(--cyan-dim);color:var(--cyan)}
+.quick-pick.active{border-color:var(--cyan);background:rgba(0,229,255,0.1);color:var(--cyan)}
+
+/* 蒸馏流程弹框 */
+.distill-flow{display:flex;flex-direction:column;gap:0}
+.distill-step{
+  display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--border-soft);
+  opacity:0.35;transition:opacity .4s;position:relative;
+}
+.distill-step:last-child{border-bottom:none}
+.distill-step.active{opacity:1}
+.distill-step.done{opacity:0.7}
+.distill-step .step-num{
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;
+  border:1px solid var(--border-soft);background:rgba(7,11,20,0.5);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:var(--txt-dim);
+  transition:all .3s;
+}
+.distill-step.active .step-num{border-color:var(--amber);color:var(--amber);box-shadow:0 0 12px rgba(255,176,32,0.3)}
+.distill-step.done .step-num{border-color:var(--green);color:var(--green);background:rgba(0,230,118,0.08)}
+.distill-step .step-body{flex:1;min-width:0}
+.distill-step .step-title{font-size:13px;font-weight:600;color:var(--txt);margin-bottom:4px}
+.distill-step .step-desc{font-size:11px;color:var(--txt-mute);line-height:1.6}
+.distill-step .step-log{
+  margin-top:6px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--cyan-dim);
+  min-height:16px;
+}
+.distill-note{
+  margin-top:14px;padding:10px 14px;border-radius:8px;
+  background:rgba(255,176,32,0.06);border:1px solid rgba(255,176,32,0.2);
+  font-size:11px;color:var(--amber);line-height:1.6;
+}
+
+/* 用户列表 - 紧凑表格 */
+.utable{
+  border:1px solid var(--border-soft);border-radius:9px;overflow:hidden;
+  background:rgba(7,11,20,0.5);
+}
+.utable-head{
+  display:grid;grid-template-columns:48px 100px 1fr 92px;gap:0;
+  padding:7px 12px;background:rgba(0,229,255,0.04);
+  border-bottom:1px solid var(--border-soft);
+  font-size:10px;color:var(--txt-dim);letter-spacing:0.1em;text-transform:uppercase;
+  font-family:'Space Grotesk',sans-serif;font-weight:600;
+}
+.urow{
+  display:grid;grid-template-columns:48px 100px 1fr 92px;gap:0;
+  padding:6px 12px;border-bottom:1px solid rgba(148,163,184,0.06);
+  align-items:center;transition:background .12s;cursor:default;
+  font-size:12px;
+}
+.urow:last-child{border-bottom:none}
+.urow:hover{background:rgba(0,229,255,0.04)}
+.urow .u-idx{
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--txt-dim);
+}
+.urow .u-name{
+  color:var(--cyan);font-weight:500;font-size:12px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.urow .u-desc{
+  color:var(--txt-mute);font-size:11px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px;
+}
+.urow .u-acts{display:flex;gap:4px;justify-content:flex-end}
+.urow .u-acts button{
+  background:transparent;border:1px solid var(--border-soft);color:var(--txt-mute);
+  padding:3px 8px;font-size:10px;border-radius:5px;cursor:pointer;transition:all .12s;font-family:inherit;
+  white-space:nowrap;
+}
+.urow .u-acts .detail-btn:hover{border-color:var(--cyan-dim);color:var(--cyan)}
+.urow .u-acts .del-btn{border-color:rgba(255,82,82,0.15);color:rgba(255,82,82,0.7)}
+.urow .u-acts .del-btn:hover{background:rgba(255,82,82,0.1);border-color:var(--red);color:var(--red)}
+
+/* 分页 */
+.pager{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:10px 4px 4px;font-size:11px;color:var(--txt-mute);
+}
+.pager-info{font-family:'JetBrains Mono',monospace;font-size:10px}
+.pager-ctrls{display:flex;align-items:center;gap:4px}
+.pager-ctrls button{
+  background:rgba(7,11,20,0.5);border:1px solid var(--border-soft);color:var(--txt-mute);
+  min-width:26px;height:26px;padding:0 6px;border-radius:5px;cursor:pointer;
+  font-family:'JetBrains Mono',monospace;font-size:11px;transition:all .12s;
+}
+.pager-ctrls button:hover:not(:disabled){border-color:var(--cyan-dim);color:var(--cyan)}
+.pager-ctrls button:disabled{opacity:0.3;cursor:not-allowed}
+.pager-ctrls button.cur{background:rgba(0,229,255,0.12);border-color:var(--cyan);color:var(--cyan)}
+.pager-size{
+  background:rgba(0,229,255,0.06);border:1px solid var(--border-soft);color:var(--txt);
+  padding:3px 6px;border-radius:5px;font-size:10px;font-family:inherit;
+}
+.pager-size:focus{outline:none;border-color:var(--cyan)}
+
+/* 空状态 */
+.empty{
+  padding:48px 20px;border:1px dashed var(--border);border-radius:10px;
+  text-align:center;color:var(--txt-dim);background:rgba(0,229,255,0.02);
+}
+.empty .empty-icon{font-size:36px;margin-bottom:10px;opacity:0.5}
+.empty .empty-text{font-size:13px;color:var(--txt-mute)}
+.empty .empty-hint{font-size:11px;color:var(--txt-dim);margin-top:6px}
+
+/* 信息条 */
+.info-box{
+  border:1px solid var(--border-soft);border-radius:9px;padding:12px 14px;
+  background:rgba(7,11,20,0.4);font-size:11px;color:var(--txt-dim);line-height:1.7;
+}
+
+.status-bar{
+  display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;
+  background:rgba(7,11,20,0.4);border:1px solid var(--border-soft);
+  font-size:12px;color:var(--txt-mute);min-height:36px;
+}
+.status-bar .status-icon{width:7px;height:7px;border-radius:50%;background:var(--txt-dim);flex-shrink:0}
+.status-bar.active .status-icon{background:var(--amber);animation:ping 1.2s ease-out infinite;position:relative}
+.status-bar.active .status-icon::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:1px solid var(--amber);animation:ping 1.2s ease-out infinite}
+.status-bar.success .status-icon{background:var(--green)}
+.status-bar.error .status-icon{background:var(--red)}
+.status-bar.error{color:var(--red)}
+
+/* ============ Modal ============ */
+.modal-mask{
+  position:fixed;inset:0;background:rgba(4,8,16,0.78);backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;
+  padding:24px;z-index:100;
+}
+.modal-mask.show{display:flex}
+.modal{
+  width:min(860px,100%);max-height:86vh;overflow:auto;
+  background:var(--panel-solid);border:1px solid var(--border);border-radius:14px;
+  box-shadow:0 0 0 1px rgba(0,229,255,0.1),0 20px 60px rgba(0,0,0,0.6);
+  position:relative;
+}
+.modal::before{
+  content:"";position:absolute;inset:0;border-radius:14px;pointer-events:none;
+  background:linear-gradient(135deg,rgba(0,229,255,0.04),transparent 40%);
+}
+.modal-head{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
+  padding:18px 20px;border-bottom:1px solid var(--border-soft);
+}
+.modal-title{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:var(--txt)}
+.modal-sub{font-size:11px;color:var(--txt-mute);margin-top:5px;line-height:1.6;font-family:'JetBrains Mono',monospace}
+.modal-close{
+  background:transparent;border:1px solid var(--border-soft);color:var(--txt-mute);
+  width:32px;height:32px;border-radius:7px;cursor:pointer;transition:all .15s;
+  font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.modal-close:hover{border-color:var(--red);color:var(--red)}
+.modal-body{padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.detail-card{
+  border:1px solid var(--border-soft);border-radius:9px;padding:12px;
+  background:rgba(7,11,20,0.5);
+}
+.detail-card.detail-full{grid-column:1 / -1}
+.detail-label{
+  font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--txt-dim);
+  margin-bottom:7px;font-family:'Space Grotesk',sans-serif;font-weight:600;
+}
+.detail-text{font-size:12px;line-height:1.8;color:var(--txt);white-space:pre-wrap;word-break:break-word}
+.detail-text.mono{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cyan-dim)}
+
+/* ============ 响应式 ============ */
+@media (max-width: 960px){
+  .layout{grid-template-columns:1fr}
+  .topbar{flex-wrap:wrap;height:auto;padding:12px}
+  .topbar-actions{margin-left:0;width:100%;justify-content:flex-end}
+  .gen-box{flex-direction:column;align-items:flex-start}
+  .detail-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- 背景层 -->
+<div class="bg-layer bg-radial"></div>
+<div class="bg-layer bg-grid"></div>
+<div class="bg-layer bg-noise"></div>
+<div class="bg-layer bg-scan"></div>
+
+<div class="wrapper">
+  <!-- 顶部栏 -->
+  <div class="glass topbar">
+    <div class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#00E5FF" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 1v6m0 10v6M4.22 4.22l4.24 4.24m7.08 7.08l4.24 4.24M1 12h6m10 0h6M4.22 19.78l4.24-4.24m7.08-7.08l4.24-4.24"/>
+        </svg>
+      </div>
+      <div class="logo-text">
+        <h1>Virtual Market Insight</h1>
+        <p>Settings · 虚拟用户管理</p>
+      </div>
+    </div>
+    <div class="topbar-divider"></div>
+    <div>
+      <div class="topbar-title">虚拟用户管理</div>
+      <div class="topbar-sub">按行业生成 · JSON 持久化 · 可复用</div>
+    </div>
+    <div class="topbar-actions">
+      <div class="status-chip" id="globalStatus">
+        <span class="pulse live"></span>
+        <span>系统就绪</span>
+      </div>
+      <button class="btn btn-ghost" id="backBtn">返回首页</button>
+      <button class="btn btn-primary" id="generateBtn">生成虚拟用户</button>
+    </div>
+  </div>
+
+  <!-- 主布局 -->
+  <div class="layout">
+    <!-- 左侧：行业列表 -->
+    <aside class="glass sidebar">
+      <div class="panel-title">
+        <span class="dot"></span>行业分类
+        <span class="tag" id="industryCountTag">0 / 0</span>
+      </div>
+      <div class="side-body" id="industryList"></div>
+    </aside>
+
+    <!-- 右侧：用户列表 -->
+    <main class="glass main">
+      <div class="panel-title">
+        <span class="dot" style="background:var(--amber);box-shadow:0 0 8px var(--amber)"></span>
+        <span id="panelTitleText">虚拟用户列表</span>
+        <span class="tag" id="fileBadge" style="color:var(--amber)">—</span>
+      </div>
+      <div class="main-body">
+        <div class="main-head">
+          <div class="head-left">
+            <div class="h-title" id="industryTitle">汽车</div>
+            <div class="h-desc" id="industryDesc">用于汽车行业的虚拟消费者画像。</div>
+          </div>
+          <div class="badge">
+            <span id="badgeDot" class="pulse"></span>
+            <span id="userCountBadge">0 users</span>
+          </div>
+        </div>
+
+        <div class="gen-box">
+          <div class="gen-meta">
+            为当前行业调用 <b>LLM</b> 批量生成虚拟用户画像，并立即保存到对应 JSON 文件。后续可继续增加，不会覆盖已有用户。
+          </div>
+          <div class="gen-actions">
+            <button class="btn btn-ghost" id="distillBtn">蒸馏真实用户</button>
+            <button class="btn btn-ghost" id="appendBtn">增加虚拟用户</button>
+          </div>
+        </div>
+
+        <div id="personaList" class="utable"></div>
+        <div id="pagerBar" class="pager" style="display:none">
+          <span class="pager-info" id="pagerInfo">—</span>
+          <div class="pager-ctrls" id="pagerCtrls"></div>
+          <select class="pager-size" id="pagerSize">
+            <option value="20">20 / 页</option>
+            <option value="50" selected>50 / 页</option>
+            <option value="100">100 / 页</option>
+            <option value="200">200 / 页</option>
+          </select>
+        </div>
+        <div id="emptyState" class="empty" style="display:none">
+          <div class="empty-icon">∅</div>
+          <div class="empty-text">当前行业还没有虚拟用户</div>
+          <div class="empty-hint">点击上方「生成虚拟用户」按钮，由 LLM 自动创建</div>
+        </div>
+
+        <div class="info-box">
+          虚拟用户由 LLM 自动生成并持久化到 <span style="color:var(--cyan)">personas/&lt;industry&gt;.json</span>。列表支持查看详情与删除，首页创建市场时直接读取对应行业文件，无需重复调用 LLM。
+        </div>
+
+        <div class="status-bar" id="statusBar">
+          <span class="status-icon"></span>
+          <span id="statusText">就绪</span>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- 详情 Modal -->
+<div class="modal-mask" id="detailModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="detailTitle">虚拟用户详情</div>
+        <div class="modal-sub" id="detailSub">查看完整画像与底层规格</div>
+      </div>
+      <button class="modal-close" id="detailClose" type="button">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-grid">
+        <div class="detail-card">
+          <div class="detail-label">姓名</div>
+          <div class="detail-text" id="detailName"></div>
+        </div>
+        <div class="detail-card">
+          <div class="detail-label">基础标签</div>
+          <div class="detail-text" id="detailMeta"></div>
+        </div>
+        <div class="detail-card detail-full">
+          <div class="detail-label">简要画像</div>
+          <div class="detail-text" id="detailDescription"></div>
+        </div>
+        <div class="detail-card detail-full">
+          <div class="detail-label">完整规格 (JSON)</div>
+          <div class="detail-text mono" id="detailSpec"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 数量输入 Modal -->
+<div class="modal-mask" id="countModal">
+  <div class="modal" style="width:min(440px,100%)">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">增加虚拟用户</div>
+        <div class="modal-sub" id="countModalSub">输入本次需要新增的数量</div>
+      </div>
+      <button class="modal-close" id="countClose" type="button">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:14px">
+        <button class="quick-pick" id="countMinus" style="font-size:16px;padding:8px 14px">−</button>
+        <input type="number" class="count-input" id="countInput" value="3" min="1" />
+        <button class="quick-pick" id="countPlus" style="font-size:16px;padding:8px 14px">+</button>
+      </div>
+      <div class="quick-picks" style="justify-content:center;margin-bottom:14px">
+        <button class="quick-pick" data-val="1">1</button>
+        <button class="quick-pick active" data-val="3">3</button>
+        <button class="quick-pick" data-val="5">5</button>
+        <button class="quick-pick" data-val="10">10</button>
+        <button class="quick-pick" data-val="20">20</button>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-ghost" id="countCancel" type="button">取消</button>
+        <button class="btn btn-primary" id="countConfirm" type="button">确认生成</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 蒸馏真实用户 Modal -->
+<div class="modal-mask" id="distillModal">
+  <div class="modal" style="width:min(560px,100%)">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">蒸馏真实用户</div>
+        <div class="modal-sub">从真实社交数据中提炼用户画像 · 演示流程</div>
+      </div>
+      <button class="modal-close" id="distillClose" type="button">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="distill-flow" id="distillFlow">
+        <div class="distill-step" data-step="0">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">抓取社交评论</div>
+            <div class="step-desc">从微博、懂车帝、汽车之家、小红书等平台采集真实用户评论与行为数据</div>
+            <div class="step-log" data-log="0"></div>
+          </div>
+        </div>
+        <div class="distill-step" data-step="1">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">分析性格画像</div>
+            <div class="step-desc">解析语言风格与 MBTI 维度，推断年龄段、收入区间，识别性格画像</div>
+            <div class="step-log" data-log="1"></div>
+          </div>
+        </div>
+        <div class="distill-step" data-step="2">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">识别消费偏好</div>
+            <div class="step-desc">聚类品牌偏好向量，计算价格敏感度，标记消费动机类型</div>
+            <div class="step-log" data-log="2"></div>
+          </div>
+        </div>
+        <div class="distill-step" data-step="3">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">构建记忆流</div>
+            <div class="step-desc">写入近期浏览记忆，关联历史决策，建立可反思的上下文</div>
+            <div class="step-log" data-log="3"></div>
+          </div>
+        </div>
+      </div>
+      <div class="distill-note">
+        本版本为演示流程，暂未接入实际功能。后续版本将通过真实社交数据 API 自动蒸馏用户画像。
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_BASE = 'http://127.0.0.1:5003';
+const INDUSTRIES = {
+  auto:{name:'汽车', desc:'用于汽车行业的虚拟消费者画像。', icon:'🚗'},
+  elec:{name:'服装', desc:'用于服装行业的虚拟消费者画像。', icon:'👔'},
+  fmcg:{name:'手机', desc:'用于手机行业的虚拟消费者画像。', icon:'📱'}
+};
+const state = {
+  industry:'auto',
+  personasByIndustry:{},
+  fileByIndustry:{},
+  generating:false
+};
+const $ = id => document.getElementById(id);
+
+async function apiGet(path){
+  const resp = await fetch(API_BASE + path);
+  const data = await resp.json();
+  if(data.status !== 'ok') throw new Error(data.message || '请求失败');
+  return data;
+}
+
+async function apiPost(path, body){
+  const resp = await fetch(API_BASE + path, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body)
+  });
+  const data = await resp.json();
+  if(data.status !== 'ok') throw new Error(data.message || '请求失败');
+  return data;
+}
+
+async function apiDelete(path){
+  const resp = await fetch(API_BASE + path, { method:'DELETE' });
+  const data = await resp.json();
+  if(data.status !== 'ok') throw new Error(data.message || '请求失败');
+  return data;
+}
+
+function getQueryIndustry(){
+  const params = new URLSearchParams(window.location.search);
+  const key = params.get('industry') || 'auto';
+  return INDUSTRIES[key] ? key : 'auto';
+}
+
+function renderIndustryList(){
+  const list = $('industryList');
+  list.innerHTML='';
+  let totalUsers = 0;
+  Object.entries(INDUSTRIES).forEach(([key, info])=>{
+    const count = (state.personasByIndustry[key] || []).length;
+    totalUsers += count;
+    const item = document.createElement('button');
+    item.type='button';
+    item.className='industry-item' + (key===state.industry ? ' active' : '');
+    item.innerHTML = `
+      <div class="ind-icon">${info.icon || '◆'}</div>
+      <div class="ind-info">
+        <div class="ind-name">${info.name}</div>
+        <div class="ind-meta">${count} users · ${key}.json</div>
+      </div>
+    `;
+    item.addEventListener('click', ()=>switchIndustry(key));
+    list.appendChild(item);
+  });
+  const activeCount = (state.personasByIndustry[state.industry] || []).length;
+  $('industryCountTag').textContent = activeCount + ' / ' + totalUsers;
+}
+
+function createPersonaRow(persona, index){
+  const row = document.createElement('div');
+  row.className='urow';
+  const name = persona.name || '未命名';
+  const desc = persona.description || persona.spec?.persona?.minibio || '';
+  row.innerHTML = `
+    <div class="u-idx">${String(index + 1).padStart(3,'0')}</div>
+    <div class="u-name" title="${escapeHtml(name)}">${escapeHtml(name)}</div>
+    <div class="u-desc" title="${escapeHtml(desc)}">${escapeHtml(desc)}</div>
+    <div class="u-acts">
+      <button type="button" class="detail-btn">详情</button>
+      <button type="button" class="del-btn">删除</button>
+    </div>
+  `;
+  row.querySelector('.del-btn').addEventListener('click', ()=>deletePersona(index));
+  row.querySelector('.detail-btn').addEventListener('click', ()=>openDetailModal(persona, index));
+  return row;
+}
+
+function escapeHtml(text){
+  return String(text)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
+function renderCurrentIndustry(){
+  renderIndustryList();
+  const industry = INDUSTRIES[state.industry];
+  const personas = state.personasByIndustry[state.industry] || [];
+  $('industryTitle').textContent = industry.name;
+  $('industryDesc').textContent = industry.desc;
+  $('panelTitleText').textContent = industry.name + ' · 虚拟用户列表';
+  $('fileBadge').textContent = state.fileByIndustry[state.industry] || 'personas/' + state.industry + '.json';
+  $('userCountBadge').textContent = personas.length + ' users';
+  $('badgeDot').className = 'pulse' + (personas.length ? ' live' : '');
+  $('emptyState').style.display = personas.length ? 'none' : 'block';
+  renderPersonaPage();
+  $('generateBtn').textContent = personas.length ? '增加虚拟用户' : '生成虚拟用户';
+  $('appendBtn').textContent = personas.length ? '增加虚拟用户' : '生成虚拟用户';
+}
+
+/* 分页 */
+state.pageSize = parseInt(($('pagerSize')||{}).value || '50', 10);
+state.currentPage = 1;
+
+function renderPersonaPage(){
+  const personas = state.personasByIndustry[state.industry] || [];
+  const list = $('personaList');
+  const total = personas.length;
+  const size = state.pageSize;
+  const totalPages = Math.max(1, Math.ceil(total / size));
+  if(state.currentPage > totalPages) state.currentPage = totalPages;
+  const page = state.currentPage;
+  const start = (page - 1) * size;
+  const end = Math.min(start + size, total);
+
+  list.innerHTML='';
+  if(total===0){
+    $('pagerBar').style.display='none';
+    return;
+  }
+  // 表头
+  const head = document.createElement('div');
+  head.className='utable-head';
+  head.innerHTML='<div>#</div><div>姓名</div><div>画像描述</div><div style="text-align:right">操作</div>';
+  list.appendChild(head);
+  // 当前页数据
+  for(let i=start; i<end; i++){
+    list.appendChild(createPersonaRow(personas[i], i));
+  }
+  // 分页栏
+  $('pagerBar').style.display='flex';
+  $('pagerInfo').textContent = `${start+1}-${end} / ${total}`;
+  renderPagerCtrls(totalPages, page);
+}
+
+function renderPagerCtrls(totalPages, page){
+  const ctrls = $('pagerCtrls');
+  ctrls.innerHTML='';
+  const addBtn=(label, p, opts={})=>{
+    const b=document.createElement('button');
+    b.textContent=label;
+    if(opts.disabled) b.disabled=true;
+    if(opts.cur) b.className='cur';
+    b.addEventListener('click',()=>{state.currentPage=p;renderPersonaPage();});
+    ctrls.appendChild(b);
+  };
+  // 上一页
+  addBtn('‹', page-1, {disabled:page<=1});
+  // 页码（最多显示7个）
+  let pages=[];
+  if(totalPages<=7){
+    for(let i=1;i<=totalPages;i++)pages.push(i);
+  } else {
+    pages=[1];
+    if(page>4)pages.push('…');
+    const s=Math.max(2,page-1),e=Math.min(totalPages-1,page+1);
+    for(let i=s;i<=e;i++)pages.push(i);
+    if(page<totalPages-3)pages.push('…');
+    pages.push(totalPages);
+  }
+  pages.forEach(p=>{
+    if(p==='…'){const s=document.createElement('span');s.textContent='…';s.style.cssText='padding:0 4px;color:var(--txt-dim)';ctrls.appendChild(s);}
+    else addBtn(String(p), p, {cur:p===page});
+  });
+  // 下一页
+  addBtn('›', page+1, {disabled:page>=totalPages});
+}
+
+function formatDetailMeta(persona){
+  const specPersona = persona && persona.spec && persona.spec.persona ? persona.spec.persona : {};
+  const parts = [];
+  if(specPersona.age) parts.push('年龄：' + specPersona.age);
+  if(specPersona.gender) parts.push('性别：' + specPersona.gender);
+  const occupation = specPersona.occupation && typeof specPersona.occupation === 'object'
+    ? specPersona.occupation.title
+    : specPersona.occupation;
+  if(occupation) parts.push('职业：' + occupation);
+  if(specPersona.residence) parts.push('居住地：' + specPersona.residence);
+  if(specPersona.nationality) parts.push('国籍：' + specPersona.nationality);
+  return parts.join('\n') || '暂无基础标签';
+}
+
+function openDetailModal(persona, index){
+  $('detailTitle').textContent = '虚拟用户 ' + String(index + 1).padStart(2,'0') + ' · ' + (persona.name || '未命名');
+  $('detailSub').textContent = '已保存到 ' + (state.fileByIndustry[state.industry] || ('personas/' + state.industry + '.json'));
+  $('detailName').textContent = persona.name || '未命名';
+  $('detailMeta').textContent = formatDetailMeta(persona);
+  $('detailDescription').textContent = persona.description || '暂无描述';
+  $('detailSpec').textContent = JSON.stringify(persona.spec || {}, null, 2);
+  $('detailModal').classList.add('show');
+}
+
+function closeDetailModal(){
+  $('detailModal').classList.remove('show');
+}
+
+function setStatus(text, type){
+  const bar = $('statusBar');
+  bar.className = 'status-bar' + (type ? ' ' + type : '');
+  $('statusText').textContent = text;
+}
+
+async function loadIndustry(key){
+  const data = await apiGet('/api/personas?industry=' + encodeURIComponent(key));
+  state.personasByIndustry[key] = data.personas || [];
+  state.fileByIndustry[key] = data.file;
+}
+
+async function switchIndustry(key){
+  state.industry = key;
+  if(!state.personasByIndustry[key]){
+    await loadIndustry(key);
+  }
+  renderCurrentIndustry();
+  setStatus('已切换到「' + INDUSTRIES[key].name + '」行业', '');
+}
+
+function askGenerateCount(){
+  return new Promise((resolve)=>{
+    const modal = $('countModal');
+    const input = $('countInput');
+    const confirmBtn = $('countConfirm');
+    const cancelBtn = $('countCancel');
+    const closeBtn = $('countClose');
+    const sub = $('countModalSub');
+    const industryName = INDUSTRIES[state.industry].name;
+    sub.textContent = '为「' + industryName + '」行业新增虚拟用户数量';
+    input.value = '3';
+    updateQuickPickActive(3);
+    modal.classList.add('show');
+
+    function cleanup(){
+      modal.classList.remove('show');
+      confirmBtn.removeEventListener('click', onConfirm);
+      cancelBtn.removeEventListener('click', onCancel);
+      closeBtn.removeEventListener('click', onCancel);
+      input.removeEventListener('keydown', onKey);
+    }
+    function onConfirm(){
+      const val = parseInt(input.value, 10);
+      if(!Number.isInteger(val) || val < 1){
+        input.style.borderColor = 'var(--red)';
+        input.focus();
+        return;
+      }
+      cleanup();
+      resolve(val);
+    }
+    function onCancel(){ cleanup(); resolve(null); }
+    function onKey(e){ if(e.key==='Enter'){ e.preventDefault(); onConfirm(); } if(e.key==='Escape'){ onCancel(); } }
+    confirmBtn.addEventListener('click', onConfirm);
+    cancelBtn.addEventListener('click', onCancel);
+    closeBtn.addEventListener('click', onCancel);
+    input.addEventListener('keydown', onKey);
+    setTimeout(()=>input.focus(), 50);
+  });
+}
+
+function updateQuickPickActive(val){
+  document.querySelectorAll('.quick-pick[data-val]').forEach(el=>{
+    el.classList.toggle('active', parseInt(el.dataset.val,10)===val);
+  });
+}
+
+const DISTILL_STEPS = [
+  { logs:[
+    '连接 微博汽车 API…',
+    '抓取 懂车帝 评论 1,284 条',
+    '抓取 汽车之家 帖子 962 条',
+    '抓取 小红书车圈 笔记 738 条',
+    '已采集行为数据 8,426 条 ✓'
+  ]},
+  { logs:[
+    '解析语言风格 · MBTI 维度',
+    '推断年龄段 / 收入区间',
+    '识别 7 类性格画像',
+    '性格画像构建完成 ✓'
+  ]},
+  { logs:[
+    '聚类品牌偏好向量',
+    '计算续航/价格敏感度',
+    '标记 6 类消费动机',
+    '偏好画像构建完成 ✓'
+  ]},
+  { logs:[
+    '写入近 30 天浏览记忆',
+    '关联历史购车决策',
+    '记忆流条目 +12,580',
+    '可反思上下文已就绪 ✓'
+  ]}
+];
+
+function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+
+async function runDistillDemo(){
+  const modal = $('distillModal');
+  const steps = document.querySelectorAll('.distill-step');
+  modal.classList.add('show');
+  steps.forEach(s=>{ s.classList.remove('active','done'); });
+  for(let i=0;i<DISTILL_STEPS.length;i++){
+    const step = steps[i];
+    step.classList.add('active');
+    const logEl = document.querySelector('[data-log="' + i + '"]');
+    logEl.textContent = '';
+    for(const log of DISTILL_STEPS[i].logs){
+      logEl.textContent = log;
+      await sleep(rand(280, 520));
+    }
+    step.classList.remove('active');
+    step.classList.add('done');
+    await sleep(200);
+  }
+}
+
+function rand(min, max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+async function generateCurrentIndustry(){
+  if(state.generating){
+    return;
+  }
+  try{
+    const count = await askGenerateCount();
+    if(count === null){
+      return;
+    }
+    state.generating = true;
+    $('generateBtn').disabled = true;
+    $('appendBtn').disabled = true;
+    setStatus('正在调用 LLM 生成 ' + count + ' 个虚拟用户，请稍候（约 ' + (count * 12) + ' 秒）...', 'active');
+    const data = await apiPost('/api/personas/generate', {
+      industry:state.industry,
+      num_users:count,
+      append_existing:true
+    });
+    state.personasByIndustry[state.industry] = data.personas || [];
+    await loadIndustry(state.industry);
+    renderCurrentIndustry();
+    setStatus('已为「' + data.industry_name + '」行业新增 ' + data.added_count + ' 个虚拟用户，当前共 ' + data.count + ' 个。', 'success');
+  }catch(e){
+    setStatus('生成失败：' + e.message, 'error');
+  }finally{
+    state.generating = false;
+    $('generateBtn').disabled = false;
+    $('appendBtn').disabled = false;
+  }
+}
+
+async function deletePersona(index){
+  const current = [...(state.personasByIndustry[state.industry] || [])];
+  current.splice(index, 1);
+  try{
+    await apiPost('/api/personas', {industry:state.industry, personas:current});
+    state.personasByIndustry[state.industry] = current;
+    setStatus('已删除 1 个虚拟用户。', 'success');
+    renderCurrentIndustry();
+  }catch(e){
+    setStatus('删除失败：' + e.message, 'error');
+  }
+}
+
+async function init(){
+  state.industry = getQueryIndustry();
+  try{
+    await Promise.all(Object.keys(INDUSTRIES).map(loadIndustry));
+    renderCurrentIndustry();
+    setStatus('就绪 · 共 ' + Object.values(state.personasByIndustry).reduce((s,a)=>s+a.length,0) + ' 个虚拟用户', '');
+  }catch(e){
+    setStatus('加载失败：' + e.message, 'error');
+  }
+  $('backBtn').addEventListener('click', ()=>{ window.location.href='/' + '?industry=' + encodeURIComponent(state.industry); });
+  $('generateBtn').addEventListener('click', generateCurrentIndustry);
+  $('appendBtn').addEventListener('click', generateCurrentIndustry);
+  $('distillBtn').addEventListener('click', runDistillDemo);
+  $('detailClose').addEventListener('click', closeDetailModal);
+  $('detailModal').addEventListener('click', (event)=>{
+    if(event.target === $('detailModal')){
+      closeDetailModal();
+    }
+  });
+  // 数量输入弹框交互
+  $('countMinus').addEventListener('click', ()=>{
+    const v = parseInt($('countInput').value, 10) || 1;
+    $('countInput').value = Math.max(1, v - 1);
+    updateQuickPickActive(parseInt($('countInput').value, 10));
+  });
+  $('countPlus').addEventListener('click', ()=>{
+    const v = parseInt($('countInput').value, 10) || 0;
+    $('countInput').value = v + 1;
+    updateQuickPickActive(parseInt($('countInput').value, 10));
+  });
+  $('countInput').addEventListener('input', ()=>{
+    const v = parseInt($('countInput').value, 10);
+    if(Number.isInteger(v) && v >= 1){
+      $('countInput').style.borderColor = '';
+      updateQuickPickActive(v);
+    }
+  });
+  document.querySelectorAll('.quick-pick[data-val]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      $('countInput').value = el.dataset.val;
+      $('countInput').style.borderColor = '';
+      updateQuickPickActive(parseInt(el.dataset.val, 10));
+    });
+  });
+  $('countModal').addEventListener('click', (event)=>{
+    if(event.target === $('countModal')){
+      $('countModal').classList.remove('show');
+    }
+  });
+  // 蒸馏弹框关闭
+  $('distillClose').addEventListener('click', ()=>{ $('distillModal').classList.remove('show'); });
+  $('distillModal').addEventListener('click', (event)=>{
+    if(event.target === $('distillModal')){
+      $('distillModal').classList.remove('show');
+    }
+  });
+  // 分页页大小切换
+  $('pagerSize').addEventListener('change', (e)=>{
+    state.pageSize = parseInt(e.target.value, 10);
+    state.currentPage = 1;
+    renderPersonaPage();
+  });
+}
+
+init();
+</script>
+</body>
+</html>

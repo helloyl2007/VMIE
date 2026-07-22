@@ -1,0 +1,2583 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI 虚拟市场洞察平台 · Virtual Market Insight</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ============ 设计系统 ============ */
+:root{
+  --bg:#070B14;
+  --bg-2:#0A1120;
+  --panel:rgba(14,22,40,0.62);
+  --panel-solid:#0E1628;
+  --border:rgba(0,229,255,0.16);
+  --border-soft:rgba(148,163,184,0.12);
+  --cyan:#00E5FF;
+  --cyan-dim:rgba(0,229,255,0.5);
+  --amber:#FFB020;
+  --amber-dim:rgba(255,176,32,0.5);
+  --green:#00E676;
+  --red:#FF5252;
+  --purple:#A78BFA;
+  --txt:#E2E8F0;
+  --txt-mute:#8AA0BD;
+  --txt-dim:#5A6B85;
+  --grid:rgba(0,229,255,0.045);
+  --glow-cyan:0 0 24px rgba(0,229,255,0.35);
+  --glow-amber:0 0 24px rgba(255,176,32,0.35);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Noto Sans SC','Space Grotesk',sans-serif;
+  background:var(--bg);
+  color:var(--txt);
+  overflow:hidden;
+  font-size:13px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+/* 背景层：径向渐变 + 网格 + 噪点 + 扫描线 */
+.bg-layer{position:fixed;inset:0;z-index:0;pointer-events:none}
+.bg-radial{
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 0%, rgba(0,229,255,0.10), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 100% 100%, rgba(255,176,32,0.08), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 50% 50%, rgba(20,40,80,0.4), transparent 70%),
+    linear-gradient(180deg,#070B14 0%,#050811 100%);
+}
+.bg-grid{
+  background-image:
+    linear-gradient(var(--grid) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:48px 48px;
+  mask-image:radial-gradient(ellipse 90% 70% at 50% 40%,#000 30%,transparent 90%);
+}
+.bg-noise{
+  opacity:0.04;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.bg-scan{
+  background:linear-gradient(180deg,transparent,rgba(0,229,255,0.06) 50%,transparent);
+  height:200px;
+  animation:scan 8s linear infinite;
+}
+@keyframes scan{0%{transform:translateY(-200px)}100%{transform:translateY(100vh)}}
+
+/* ============ 通用 ============ */
+.font-display{font-family:'Space Grotesk',sans-serif;letter-spacing:-0.01em}
+.font-mono{font-family:'JetBrains Mono',monospace}
+.glass{
+  background:var(--panel);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  border:1px solid var(--border-soft);
+  border-radius:10px;
+  position:relative;
+}
+.glass::before{
+  content:"";position:absolute;inset:0;border-radius:10px;pointer-events:none;
+  background:linear-gradient(135deg,rgba(255,255,255,0.04),transparent 40%);
+}
+.panel-title{
+  display:flex;align-items:center;gap:8px;
+  font-family:'Space Grotesk',sans-serif;
+  font-size:11px;font-weight:600;letter-spacing:0.12em;
+  text-transform:uppercase;color:var(--txt-mute);
+  padding:10px 14px;border-bottom:1px solid var(--border-soft);
+}
+.panel-title .dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+.panel-title .tag{margin-left:auto;font-size:10px;color:var(--cyan);letter-spacing:0.08em}
+
+/* ============ 主布局 ============ */
+.app{position:relative;z-index:1;height:100vh;display:flex;flex-direction:column;padding:10px;gap:10px}
+.topbar{height:56px;flex-shrink:0;display:flex;align-items:center;gap:16px;padding:0 18px}
+.main{flex:1;display:grid;grid-template-columns:320px 1fr 380px;gap:10px;min-height:0}
+.bottom{height:200px;flex-shrink:0;display:grid;grid-template-columns:1fr 380px;gap:10px}
+
+/* ============ 顶部栏 ============ */
+.logo{display:flex;align-items:center;gap:10px}
+.logo-mark{
+  width:34px;height:34px;border-radius:8px;position:relative;
+  background:linear-gradient(135deg,#00E5FF,#0080FF);
+  box-shadow:0 0 18px rgba(0,229,255,0.5);
+  display:flex;align-items:center;justify-content:center;
+}
+.logo-mark::after{
+  content:"";position:absolute;inset:3px;border-radius:6px;
+  background:var(--bg);display:flex;
+}
+.logo-mark svg{position:relative;z-index:1;width:18px;height:18px}
+.logo-text h1{font-family:'Space Grotesk';font-size:15px;font-weight:700;letter-spacing:0.02em}
+.logo-text p{font-size:10px;color:var(--txt-dim);letter-spacing:0.18em;text-transform:uppercase}
+.topbar-divider{width:1px;height:26px;background:var(--border-soft)}
+
+.industry-select{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--txt-mute)}
+.industry-select select{
+  background:rgba(0,229,255,0.06);border:1px solid var(--border);
+  color:var(--txt);padding:7px 28px 7px 12px;border-radius:7px;
+  font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%2300E5FF' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
+}
+.industry-select select:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 2px rgba(0,229,255,0.15)}
+
+.topbar-status{display:flex;align-items:center;gap:18px;margin-left:auto;font-size:11px;color:var(--txt-mute)}
+.status-chip{display:flex;align-items:center;gap:7px;padding:6px 12px;border-radius:20px;background:rgba(148,163,184,0.06);border:1px solid var(--border-soft)}
+.status-chip .pulse{width:7px;height:7px;border-radius:50%;background:var(--txt-dim);position:relative}
+.status-chip .pulse.live{background:var(--green)}
+.status-chip .pulse.live::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:1px solid var(--green);animation:ping 1.6s ease-out infinite}
+.status-chip .pulse.creating{background:var(--amber)}
+.status-chip .pulse.creating::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:1px solid var(--amber);animation:ping 1.2s ease-out infinite}
+@keyframes ping{0%{transform:scale(1);opacity:1}100%{transform:scale(2.2);opacity:0}}
+.status-chip .num{color:var(--cyan);font-family:'JetBrains Mono';font-weight:500}
+
+.btn{
+  font-family:inherit;cursor:pointer;border:none;border-radius:7px;
+  font-size:12px;font-weight:600;letter-spacing:0.03em;
+  padding:9px 16px;transition:all .2s;display:inline-flex;align-items:center;gap:7px;
+}
+.btn-ghost{background:transparent;border:1px solid var(--border-soft);color:var(--txt-mute)}
+.btn-ghost:hover{border-color:var(--cyan);color:var(--cyan)}
+.btn-primary{
+  background:linear-gradient(135deg,#00E5FF,#0091EA);color:#00121A;
+  box-shadow:0 0 0 1px rgba(0,229,255,0.4),0 4px 18px rgba(0,229,255,0.3);
+}
+.btn-primary:hover{box-shadow:0 0 0 1px rgba(0,229,255,0.6),0 6px 24px rgba(0,229,255,0.5);transform:translateY(-1px)}
+.btn-primary:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+.btn-amber{
+  background:linear-gradient(135deg,#FFB020,#FF6F00);color:#1A0F00;
+  box-shadow:0 0 0 1px rgba(255,176,32,0.4),0 4px 18px rgba(255,176,32,0.3);
+}
+.btn-amber:hover{box-shadow:0 0 0 1px rgba(255,176,32,0.6),0 6px 24px rgba(255,176,32,0.5);transform:translateY(-1px)}
+.btn-amber:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+
+/* 小图标按钮（顶栏用） */
+.icon-btn{
+  width:30px;height:30px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#FFB020,#FF6F00);color:#1A0F00;
+  border:1px solid rgba(255,176,32,0.5);
+  box-shadow:0 0 0 1px rgba(255,176,32,0.2),0 2px 10px rgba(255,176,32,0.25);
+  cursor:pointer;transition:all .2s;flex-shrink:0;
+}
+.icon-btn:hover{box-shadow:0 0 0 1px rgba(255,176,32,0.6),0 4px 16px rgba(255,176,32,0.5);transform:translateY(-1px)}
+.icon-btn:disabled{opacity:0.35;cursor:not-allowed;transform:none;box-shadow:none}
+.icon-btn svg{width:15px;height:15px}
+.icon-btn.spinning svg{animation:spin 1.2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* KPI 突出条（舞台顶部） */
+.kpi-strip{
+  flex-shrink:0;display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1px;background:linear-gradient(90deg,rgba(0,229,255,0.25),rgba(255,176,32,0.25),rgba(0,229,255,0.25));
+  border-top:1px solid var(--border-soft);border-bottom:1px solid var(--border-soft);
+}
+.kpi-cell{
+  background:rgba(7,11,20,0.85);padding:12px 16px;position:relative;overflow:hidden;
+  display:flex;flex-direction:column;gap:3px;
+}
+.kpi-cell::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+  opacity:0;transition:opacity .4s;
+}
+.kpi-cell.active::before{opacity:0.7}
+.kpi-cell .kpi-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.kpi-cell .kpi-v{
+  font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;line-height:1;
+  color:var(--txt);font-variant-numeric:tabular-nums;letter-spacing:-0.01em;
+  text-shadow:0 0 18px rgba(0,229,255,0.35);
+}
+.kpi-cell .kpi-v.dim{color:var(--txt-dim);text-shadow:none}
+.kpi-cell .kpi-delta{
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;
+  padding:2px 7px;border-radius:10px;letter-spacing:0.02em;white-space:nowrap;
+  background:rgba(148,163,184,0.1);color:var(--txt-mute);
+}
+.kpi-cell .kpi-delta.up{background:rgba(0,230,118,0.15);color:var(--green)}
+.kpi-cell .kpi-delta.down{background:rgba(255,82,82,0.15);color:var(--red)}
+.kpi-cell .kpi-l{font-size:9.5px;color:var(--txt-mute);letter-spacing:0.14em;text-transform:uppercase}
+.kpi-cell .kpi-spark{position:absolute;right:10px;bottom:8px;opacity:0.5}
+
+/* ============ 左侧：概念投放 ============ */
+.left-panel{display:flex;flex-direction:column;overflow:hidden}
+.left-body{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:12px}
+.left-body::-webkit-scrollbar{width:6px}
+.left-body::-webkit-scrollbar-thumb{background:rgba(0,229,255,0.2);border-radius:3px}
+.left-body>*{flex-shrink:0}
+
+/* 上传区 */
+.upload-zone{
+  position:relative;border:1.5px dashed var(--border);border-radius:9px;
+  padding:14px;text-align:center;cursor:pointer;transition:all .2s;
+  background:rgba(0,229,255,0.03);overflow:hidden;
+}
+.upload-zone:hover{border-color:var(--cyan);background:rgba(0,229,255,0.07)}
+.upload-zone.has-img{padding:0;border-style:solid;border-color:var(--border)}
+.upload-preview{width:100%;height:140px;object-fit:cover;border-radius:8px;display:block}
+.upload-overlay{
+  position:absolute;inset:0;background:linear-gradient(0deg,rgba(7,11,20,0.85),transparent 60%);
+  display:flex;align-items:flex-end;justify-content:center;padding:8px;
+  font-size:10px;color:var(--txt-mute);opacity:0;transition:opacity .2s;
+}
+.upload-zone.has-img:hover .upload-overlay{opacity:1}
+.upload-icon{font-size:22px;margin-bottom:4px}
+.upload-hint{font-size:11px;color:var(--txt-mute)}
+.upload-sub{font-size:10px;color:var(--txt-dim);margin-top:3px}
+
+/* 视频上传行 */
+.video-upload{display:flex;align-items:center;gap:8px}
+.video-name{font-size:11px;color:var(--txt-dim);font-family:'JetBrains Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.video-name.has-file{color:var(--cyan)}
+.video-clear{background:rgba(255,82,82,0.12);border:1px solid rgba(255,82,82,0.3);color:var(--red);width:22px;height:22px;border-radius:5px;cursor:pointer;font-size:14px;line-height:1;padding:0;flex-shrink:0;transition:all .15s}
+.video-clear:hover{background:rgba(255,82,82,0.22)}
+
+/* AI 视觉识别结果框 */
+.vision-box{margin-top:6px;border:1px solid var(--border-soft);border-radius:8px;background:rgba(0,229,255,0.03);overflow:hidden}
+.vision-head{display:flex;align-items:center;gap:8px;padding:8px 10px}
+.vision-dot{width:7px;height:7px;border-radius:50%;background:var(--amber);flex-shrink:0;position:relative}
+.vision-dot.loading::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:1px solid var(--amber);animation:ping 1.4s ease-out infinite}
+.vision-dot.done{background:var(--green)}
+.vision-dot.error{background:var(--red)}
+.vision-title{font-weight:600;color:var(--txt-mute);letter-spacing:0.04em;font-size:11px}
+.vision-state{color:var(--amber);font-family:'JetBrains Mono',monospace;font-size:10px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vision-state.done{color:var(--green)}
+.vision-state.error{color:var(--red)}
+.vision-toggle{background:none;border:none;color:var(--cyan);font-size:10px;cursor:pointer;font-family:inherit;padding:2px 6px;flex-shrink:0}
+.vision-toggle:hover{text-decoration:underline}
+.vision-body{padding:9px 11px;border-top:1px solid var(--border-soft);font-size:11px;color:var(--txt-mute);line-height:1.65;max-height:160px;overflow-y:auto;white-space:pre-wrap;word-break:break-word}
+.vision-body::-webkit-scrollbar{width:5px}
+.vision-body::-webkit-scrollbar-thumb{background:rgba(0,229,255,0.2);border-radius:3px}
+.vision-body .vision-empty{color:var(--txt-dim);font-style:italic}
+
+.field-label{font-size:10px;color:var(--txt-mute);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.field-label .req{color:var(--amber)}
+.field-label .hint-text{font-size:9px;color:var(--txt-dim);text-transform:none;letter-spacing:0;font-weight:400}
+
+.input,textarea.input{
+  width:100%;background:rgba(7,11,20,0.5);border:1px solid var(--border-soft);
+  color:var(--txt);padding:8px 10px;border-radius:7px;font-family:inherit;font-size:12px;
+  transition:all .15s;
+}
+.input:focus,textarea.input:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 2px rgba(0,229,255,0.12)}
+textarea.input{resize:vertical;min-height:64px;line-height:1.55}
+textarea.input::-webkit-scrollbar{width:8px}
+textarea.input::-webkit-scrollbar-track{background:rgba(7,11,20,0.4);border-radius:4px}
+textarea.input::-webkit-scrollbar-thumb{background:rgba(0,229,255,0.25);border-radius:4px}
+textarea.input::-webkit-scrollbar-thumb:hover{background:rgba(0,229,255,0.45)}
+textarea.input{scrollbar-width:thin;scrollbar-color:rgba(0,229,255,0.3) rgba(7,11,20,0.4)}
+
+/* 色板 */
+.color-row{display:flex;gap:6px;flex-wrap:wrap}
+.color-swatch{
+  width:24px;height:24px;border-radius:6px;cursor:pointer;position:relative;
+  border:2px solid transparent;transition:all .15s;
+}
+.color-swatch:hover{transform:scale(1.12)}
+.color-swatch.active{border-color:#fff;box-shadow:0 0 0 2px var(--cyan)}
+.color-swatch.active::after{content:"";position:absolute;inset:-6px;border-radius:9px;border:1px solid var(--cyan)}
+
+/* 选项组 */
+.opt-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.opt-row.cols-2{grid-template-columns:repeat(2,1fr)}
+.opt{
+  padding:7px 4px;text-align:center;font-size:11px;border-radius:6px;cursor:pointer;
+  background:rgba(7,11,20,0.5);border:1px solid var(--border-soft);color:var(--txt-mute);
+  transition:all .15s;
+}
+.opt:hover{border-color:var(--cyan-dim);color:var(--txt)}
+.opt.active{background:rgba(0,229,255,0.12);border-color:var(--cyan);color:var(--cyan);font-weight:500}
+
+/* 卖点标签 */
+.tag-row{display:flex;flex-wrap:wrap;gap:5px}
+.tag-pill{
+  padding:4px 9px;font-size:10px;border-radius:20px;cursor:pointer;
+  background:rgba(148,163,184,0.08);border:1px solid var(--border-soft);color:var(--txt-mute);
+  transition:all .15s;
+}
+.tag-pill:hover{border-color:var(--cyan-dim);color:var(--txt)}
+.tag-pill.active{background:rgba(255,176,32,0.12);border-color:var(--amber);color:var(--amber)}
+
+/* 滑块 */
+.slider-row{display:flex;align-items:center;gap:10px}
+.slider-row .label{font-size:11px;color:var(--txt-mute);min-width:64px}
+.slider-row .val{font-family:'JetBrains Mono';font-size:11px;color:var(--cyan);min-width:48px;text-align:right}
+input[type=range]{
+  -webkit-appearance:none;flex:1;height:4px;border-radius:2px;
+  appearance:none;
+  background:linear-gradient(90deg,var(--cyan) 0%,var(--cyan) var(--p,50%),rgba(148,163,184,0.2) var(--p,50%));
+  outline:none;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:#fff;border:2px solid var(--cyan);cursor:pointer;
+  box-shadow:0 0 10px rgba(0,229,255,0.6);
+}
+
+/* 行动按钮区 */
+.action-block{display:flex;flex-direction:column;gap:8px;padding-top:4px}
+.btn-block{width:100%;justify-content:center;padding:11px}
+
+/* ============ 中央：虚拟市场舞台 ============ */
+.center-panel{display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.stage-header{
+  padding:12px 16px;border-bottom:1px solid var(--border-soft);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.stage-header h2{font-family:'Space Grotesk';font-size:14px;font-weight:600;letter-spacing:0.02em}
+.stage-header h2 span{color:var(--cyan)}
+.stage-meta{font-family:'JetBrains Mono';font-size:10px;color:var(--txt-dim)}
+
+.stage{flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.stage-canvas-wrap{flex:1;position:relative;min-height:0}
+#stageCanvas{position:absolute;inset:0;width:100%;height:100%}
+
+/* ============ 动作气泡（分析过程中） ============ */
+.action-bubbles{position:absolute;inset:0;pointer-events:none;z-index:5;overflow:hidden}
+.action-bubble{
+  position:absolute;max-width:240px;padding:7px 11px;border-radius:8px;
+  background:rgba(10,17,32,0.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid var(--border-soft);
+  font-size:11px;line-height:1.5;color:var(--txt);
+  animation:bubbleIn .35s cubic-bezier(.2,.8,.3,1.2);
+  opacity:1;transition:opacity .8s ease-in;
+}
+.action-bubble.fading{opacity:0}
+@keyframes bubbleIn{0%{opacity:0;transform:scale(0.7) translateY(8px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+.action-bubble .ab-head{display:flex;align-items:center;gap:6px;margin-bottom:2px}
+.action-bubble .ab-user{font-weight:600;color:var(--cyan);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.action-bubble .ab-type{display:inline-block;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:600;letter-spacing:0.05em;flex-shrink:0}
+.action-bubble .ab-type.THINK{background:rgba(0,229,255,0.15);color:var(--cyan);border:1px solid rgba(0,229,255,0.2)}
+.action-bubble .ab-type.SAY{background:rgba(0,230,118,0.15);color:var(--green);border:1px solid rgba(0,230,118,0.2)}
+.action-bubble .ab-type.DO{background:rgba(255,176,32,0.15);color:var(--amber);border:1px solid rgba(255,176,32,0.2)}
+.action-bubble .ab-type.WRITE{background:rgba(167,139,250,0.15);color:var(--purple);border:1px solid rgba(167,139,250,0.2)}
+.action-bubble .ab-content{color:var(--txt-mute);font-size:10.5px;margin-top:2px;max-height:48px;overflow:hidden;display:-webkit-box;line-clamp:2;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+
+/* 分析报告链接 */
+.report-link{cursor:pointer;transition:all .15s;text-decoration:none;border-bottom:1px dashed currentColor}
+.report-link:hover{color:var(--cyan) !important;border-bottom-style:solid}
+
+/* 报告 Modal */
+.report-modal-body{max-height:60vh;overflow-y:auto;padding:16px 20px}
+.report-modal-body::-webkit-scrollbar{width:6px}
+.report-modal-body::-webkit-scrollbar-thumb{background:rgba(0,229,255,0.2);border-radius:3px}
+.report-text{font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8;color:var(--txt);white-space:pre-wrap;word-break:break-word}
+
+/* 空状态 */
+.stage-empty{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;gap:14px;pointer-events:none;
+}
+.stage-empty .btn{pointer-events:auto}
+.stage-empty .icon{
+  width:64px;height:64px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,229,255,0.15),transparent 70%);
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--border);position:relative;
+}
+.stage-empty .icon::before,.stage-empty .icon::after{
+  content:"";position:absolute;inset:-8px;border-radius:50%;
+  border:1px solid var(--border-soft);animation:breathe 3s ease-in-out infinite;
+}
+.stage-empty .icon::after{animation-delay:1.5s;inset:-16px}
+@keyframes breathe{0%,100%{opacity:0.3;transform:scale(1)}50%{opacity:0.7;transform:scale(1.05)}}
+.stage-empty h3{font-family:'Space Grotesk';font-size:16px;color:var(--txt);font-weight:500;margin-top:6px}
+.stage-empty p{font-size:11px;color:var(--txt-dim);max-width:280px;line-height:1.7}
+
+/* 阶段进度 */
+.phase-rail{
+  position:absolute;left:16px;right:16px;top:16px;
+  display:flex;align-items:center;gap:0;z-index:5;
+}
+.phase{
+  flex:1;display:flex;align-items:center;gap:8px;opacity:0.35;transition:opacity .4s;
+}
+.phase.active{opacity:1}
+.phase.done{opacity:0.7}
+.phase-dot{
+  width:22px;height:22px;border-radius:50%;flex-shrink:0;
+  background:rgba(7,11,20,0.9);border:1.5px solid var(--border-soft);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono';font-size:10px;font-weight:600;color:var(--txt-dim);
+  position:relative;transition:all .3s;
+}
+.phase.active .phase-dot{border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 12px var(--cyan-dim)}
+.phase.active .phase-dot::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1px solid var(--cyan);animation:ping 1.4s ease-out infinite}
+.phase.done .phase-dot{background:var(--cyan);border-color:var(--cyan);color:#00121A}
+.phase-line{flex:1;height:1px;background:var(--border-soft);margin:0 -2px}
+.phase.active .phase-line,.phase.done .phase-line{background:var(--cyan)}
+.phase-label{font-size:9.5px;color:var(--txt-mute);white-space:nowrap;letter-spacing:0.04em}
+.phase.active .phase-label{color:var(--cyan)}
+
+/* 计数器 */
+.stage-counter{
+  position:absolute;left:16px;bottom:14px;z-index:5;
+  display:flex;gap:18px;align-items:flex-end;
+}
+.counter-item{display:flex;flex-direction:column;gap:2px}
+.counter-num{font-family:'Space Grotesk';font-size:24px;font-weight:700;color:var(--cyan);line-height:1;font-variant-numeric:tabular-nums}
+.counter-num.amber{color:var(--amber)}
+.counter-label{font-size:9px;color:var(--txt-dim);letter-spacing:0.12em;text-transform:uppercase}
+
+/* 阶段日志 */
+.stage-log{
+  position:absolute;right:16px;bottom:14px;z-index:5;
+  width:260px;max-height:140px;overflow:hidden;
+  background:rgba(7,11,20,0.78);border:1px solid var(--border-soft);border-radius:7px;
+  font-family:'JetBrains Mono';font-size:10px;line-height:1.7;
+  transition:max-height .3s ease;
+}
+.stage-log .log-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:5px 8px;border-bottom:1px solid var(--border-soft);
+}
+.stage-log .log-title{font-size:9px;color:var(--txt-dim);letter-spacing:0.12em;text-transform:uppercase}
+.stage-log .log-toggle{
+  background:none;border:none;color:var(--txt-mute);cursor:pointer;
+  width:16px;height:16px;display:flex;align-items:center;justify-content:center;
+  padding:0;border-radius:3px;transition:color .15s;
+}
+.stage-log .log-toggle:hover{color:var(--cyan)}
+.stage-log .log-toggle svg{width:11px;height:11px;transition:transform .3s}
+.stage-log .log-body{padding:6px 10px;max-height:108px;overflow-y:auto}
+.stage-log .log-body::-webkit-scrollbar{width:4px}
+.stage-log .log-body::-webkit-scrollbar-thumb{background:rgba(0,229,255,0.2);border-radius:2px}
+.stage-log.collapsed{max-height:28px}
+.stage-log.collapsed .log-head{border-bottom-color:transparent}
+.stage-log.collapsed .log-body{display:none}
+.stage-log.collapsed .log-toggle svg{transform:rotate(180deg)}
+.stage-log .ln{color:var(--txt-mute);opacity:0;transform:translateX(-6px);transition:all .3s}
+.stage-log .ln.show{opacity:1;transform:translateX(0)}
+.stage-log .ln .t{color:var(--cyan)}
+.stage-log .ln.ok{color:var(--green)}
+
+/* 就绪态：满意度雷达 */
+.stage-ready{
+  position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
+  pointer-events:none;gap:14px;
+  padding-left:220px;
+}
+.stage-ready.show{display:flex}
+.ready-ring{
+  width:340px;height:340px;max-width:90%;max-height:75%;
+  display:flex;align-items:center;justify-content:center;position:relative;
+}
+.ready-ring::before,.ready-ring::after{
+  content:"";position:absolute;border-radius:50%;border:1px dashed rgba(0,229,255,0.18);
+  animation:rotateRing 40s linear infinite;
+}
+.ready-ring::before{inset:0}
+.ready-ring::after{inset:24px;border-style:dotted;animation:rotateRing 60s linear infinite reverse}
+.ready-ring .ring-outer{
+  position:absolute;inset:-30px;border-radius:50%;border:1px solid var(--border);
+  background:radial-gradient(circle,rgba(0,229,255,0.05),transparent 70%);
+}
+@keyframes rotateRing{to{transform:rotate(360deg)}}
+#stageRadarChart{position:relative;z-index:1;width:100%;height:100%;display:block}
+.ready-caption{
+  font-family:'Space Grotesk';font-size:11px;color:var(--cyan);letter-spacing:0.14em;
+  text-transform:uppercase;text-shadow:0 0 12px rgba(0,229,255,0.4);
+}
+
+/* 舞台左侧：六维评分柱状图（分析完成后显示，融入背景） */
+.stage-scores{
+  position:absolute;left:50px;top:48%;transform:translateY(-50%);
+  display:flex;flex-direction:column;gap:7px;
+  pointer-events:auto;z-index:3;
+  opacity:0.15;transition:opacity .6s ease;
+}
+.stage-scores.show{opacity:1}
+@keyframes ssFadeIn{from{opacity:0;transform:translate(-14px,-50%)}to{opacity:1;transform:translate(0,-50%)}}
+.ss-bars{display:flex;flex-direction:column;gap:5px}
+.ss-row{display:flex;align-items:center;gap:7px}
+.ss-name{width:38px;font-size:10px;color:var(--txt-mute);text-align:right;flex-shrink:0}
+.ss-track{flex:1;height:6px;border-radius:3px;background:rgba(148,163,184,0.08);overflow:hidden;position:relative}
+.ss-fill{height:100%;width:0;border-radius:3px;transition:width 1s cubic-bezier(.4,0,.2,1);background:linear-gradient(90deg,rgba(0,229,255,0.35),var(--cyan))}
+.ss-row.top .ss-fill{background:linear-gradient(90deg,rgba(0,230,118,0.4),#00E676)}
+.ss-row.low .ss-fill{background:linear-gradient(90deg,rgba(255,82,82,0.4),#FF5252)}
+.ss-val{font-family:'JetBrains Mono';font-size:9.5px;color:var(--txt);min-width:22px;text-align:right;flex-shrink:0}
+.ss-row.top .ss-val{color:var(--green)}
+.ss-row.low .ss-val{color:var(--red)}
+.ss-advice{display:flex;flex-direction:column;gap:5px;padding-top:7px;border-top:1px solid var(--border-soft)}
+.ss-tip{display:flex;align-items:flex-start;gap:6px;font-size:10px;line-height:1.45}
+.ss-tip .badge{flex-shrink:0;font-size:8.5px;padding:1px 5px;border-radius:3px;font-family:'JetBrains Mono';letter-spacing:0.04em;margin-top:1px}
+.ss-tip.up .badge{background:rgba(0,230,118,0.15);color:var(--green)}
+.ss-tip.down .badge{background:rgba(255,82,82,0.15);color:var(--red)}
+.ss-tip .txt{color:var(--txt-mute)}
+.ss-tip .txt b{color:var(--txt);font-weight:500}
+@media(max-width:1180px){.stage-scores{display:none!important}.stage-ready{padding-left:0}}
+
+/* ============ 右侧：洞察仪表盘 ============ */
+.right-panel{display:flex;flex-direction:column;overflow:hidden}
+.right-body{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:10px}
+.right-body::-webkit-scrollbar{width:6px}
+.right-body::-webkit-scrollbar-thumb{background:rgba(0,229,255,0.2);border-radius:3px}
+
+.card{padding:12px}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.card-title{font-size:11px;color:var(--txt-mute);letter-spacing:0.08em;display:flex;align-items:center;gap:6px}
+.card-title .ic{color:var(--cyan)}
+.card-tabs{display:flex;gap:4px}
+.card-tab{font-size:9.5px;padding:3px 8px;border-radius:4px;cursor:pointer;color:var(--txt-dim);transition:all .15s;font-family:'JetBrains Mono'}
+.card-tab:hover{color:var(--txt)}
+.card-tab.active{background:rgba(0,229,255,0.12);color:var(--cyan)}
+
+canvas.chart{width:100%;display:block}
+
+/* 情绪条 */
+.sentiment-row{display:flex;gap:6px;margin-top:8px}
+.sent-bar{flex:1;height:6px;border-radius:3px;overflow:hidden;background:rgba(148,163,184,0.1);position:relative}
+.sent-bar .fill{height:100%;width:0;transition:width 1.4s cubic-bezier(.4,0,.2,1)}
+.sent-bar.pos .fill{background:linear-gradient(90deg,#00E676,#00E5FF)}
+.sent-bar.neu .fill{background:linear-gradient(90deg,#FFB020,#FFD54F)}
+.sent-bar.neg .fill{background:linear-gradient(90deg,#FF5252,#FF8A80)}
+.sent-legend{display:flex;justify-content:space-between;margin-top:8px;font-size:10px}
+.sent-legend span{display:flex;align-items:center;gap:5px;color:var(--txt-mute)}
+.sent-legend i{width:8px;height:8px;border-radius:2px;display:inline-block}
+.sent-legend .v{font-family:'JetBrains Mono';color:var(--txt);margin-left:3px}
+
+/* 赞赏吐槽 */
+.pt-list{display:flex;flex-direction:column;gap:5px}
+.pt-item{display:flex;align-items:center;gap:8px;font-size:11px}
+.pt-rank{font-family:'JetBrains Mono';font-size:10px;width:18px;color:var(--txt-dim);text-align:center}
+.pt-bar{flex:1;height:18px;border-radius:4px;background:rgba(148,163,184,0.06);position:relative;overflow:hidden}
+.pt-bar .fill{height:100%;border-radius:4px;width:0;transition:width 1.2s ease;display:flex;align-items:center;padding:0 7px}
+.pt-bar.pos .fill{background:linear-gradient(90deg,rgba(0,230,118,0.25),rgba(0,229,255,0.18))}
+.pt-bar.neg .fill{background:linear-gradient(90deg,rgba(255,82,82,0.25),rgba(255,138,128,0.18))}
+.pt-text{font-size:10.5px;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative;z-index:1}
+.pt-num{font-family:'JetBrains Mono';font-size:10px;color:var(--txt-mute);min-width:32px;text-align:right}
+
+/* 雷达图周围标签 */
+.radar-wrap{position:relative;height:170px}
+
+/* 漏斗 */
+.funnel-wrap{display:flex;flex-direction:column;gap:3px;margin-top:4px}
+.funnel-stage{display:flex;align-items:center;gap:8px;font-size:10.5px}
+.funnel-name{width:42px;color:var(--txt-mute);font-size:10px}
+.funnel-bar{flex:1;height:22px;border-radius:4px;position:relative;overflow:hidden;background:rgba(148,163,184,0.05)}
+.funnel-bar .fill{height:100%;border-radius:4px;width:0;transition:width 1.2s ease;background:linear-gradient(90deg,var(--cyan),rgba(0,229,255,0.3));display:flex;align-items:center;justify-content:flex-end;padding-right:8px}
+.funnel-bar .pct{font-family:'JetBrains Mono';font-size:10px;color:#00121A;font-weight:600;position:relative;z-index:2}
+.funnel-conv{font-family:'JetBrains Mono';font-size:9.5px;color:var(--txt-dim);min-width:36px;text-align:right}
+
+/* ============ 底部 ============ */
+.bottom-left{display:flex;flex-direction:column;overflow:hidden}
+.lab-body{flex:1;padding:12px 14px;display:flex;flex-direction:column;gap:8px;overflow-y:auto}
+.lab-body::-webkit-scrollbar{height:6px;width:6px}
+.lab-body::-webkit-scrollbar-thumb{background:rgba(255,176,32,0.2);border-radius:3px}
+.lab-intro{font-size:10.5px;color:var(--txt-mute);line-height:1.6;margin-bottom:4px}
+.lab-intro b{color:var(--amber)}
+.lab-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 18px}
+.lab-stat{display:flex;flex-direction:column;gap:2px;padding:6px 0}
+.lab-stat .v{font-family:'Space Grotesk';font-size:18px;font-weight:600;color:var(--txt);font-variant-numeric:tabular-nums}
+.lab-stat .v.up{color:var(--green)}
+.lab-stat .v.down{color:var(--red)}
+.lab-stat .l{font-size:9.5px;color:var(--txt-dim);letter-spacing:0.08em;text-transform:uppercase}
+.lab-stat .delta{font-family:'JetBrains Mono';font-size:10px}
+.lab-stat .delta.up{color:var(--green)}
+.lab-stat .delta.down{color:var(--red)}
+
+/* 进化日志 */
+.evo-body{flex:1;padding:10px 12px;display:flex;flex-direction:column;gap:6px;overflow:hidden}
+.evo-stream{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:4px}
+.evo-stream::-webkit-scrollbar{width:5px}
+.evo-stream::-webkit-scrollbar-thumb{background:rgba(167,139,250,0.25);border-radius:3px}
+.evo-item{
+  display:flex;gap:8px;align-items:flex-start;font-size:10.5px;
+  padding:6px 8px;border-radius:6px;background:rgba(7,11,20,0.4);
+  border-left:2px solid var(--txt-dim);
+  opacity:0;transform:translateY(-4px);transition:all .4s;
+}
+.evo-item.show{opacity:1;transform:translateY(0)}
+.evo-item.news{border-left-color:var(--cyan)}
+.evo-item.reflect{border-left-color:var(--purple)}
+.evo-item.memory{border-left-color:var(--amber)}
+.evo-item.action{border-left-color:var(--green)}
+.evo-tag{font-family:'JetBrains Mono';font-size:9px;padding:1px 6px;border-radius:3px;flex-shrink:0;letter-spacing:0.05em}
+.evo-item.news .evo-tag{background:rgba(0,229,255,0.15);color:var(--cyan)}
+.evo-item.reflect .evo-tag{background:rgba(167,139,250,0.15);color:var(--purple)}
+.evo-item.memory .evo-tag{background:rgba(255,176,32,0.15);color:var(--amber)}
+.evo-item.action .evo-tag{background:rgba(0,230,118,0.15);color:var(--green)}
+.evo-time{font-family:'JetBrains Mono';font-size:9px;color:var(--txt-dim);flex-shrink:0;margin-top:1px}
+.evo-text{color:var(--txt);line-height:1.5}
+.evo-text .uid{color:var(--cyan);font-family:'JetBrains Mono'}
+
+/* ============ 提示 ============ */
+.toast{
+  position:fixed;top:70px;left:50%;transform:translateX(-50%) translateY(-20px);
+  background:rgba(7,11,20,0.95);border:1px solid var(--cyan);border-radius:8px;
+  padding:10px 18px;font-size:12px;color:var(--txt);z-index:1000;
+  box-shadow:0 0 24px rgba(0,229,255,0.3);opacity:0;pointer-events:none;
+  transition:all .35s;display:flex;align-items:center;gap:8px;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast .ic{color:var(--cyan)}
+
+/* 滚动数字 */
+.tick{display:inline-block;transition:transform .4s}
+
+/* 响应式 */
+@media (max-width:1200px){
+  .main{grid-template-columns:280px 1fr 340px}
+}
+@media (max-width:980px){
+  body{overflow:auto}
+  .app{height:auto;min-height:100vh}
+  .main{grid-template-columns:1fr;grid-template-rows:auto auto auto}
+  .bottom{grid-template-columns:1fr;height:auto}
+  .center-panel{min-height:480px}
+  .stage{flex:0 0 380px;height:380px}
+  .bottom-left{min-height:260px}
+  .bottom-right{min-height:240px}
+}
+/* ============ Modal ============ */
+.modal-mask{
+  position:fixed;inset:0;background:rgba(4,8,16,0.78);backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;
+  padding:24px;z-index:200;
+}
+.modal-mask.show{display:flex}
+.modal{
+  width:min(680px,100%);max-height:86vh;overflow:auto;
+  background:#0E1628;border:1px solid rgba(0,229,255,0.16);border-radius:14px;
+  box-shadow:0 0 0 1px rgba(0,229,255,0.1),0 20px 60px rgba(0,0,0,0.6);
+  position:relative;
+}
+.modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:18px 20px;border-bottom:1px solid rgba(148,163,184,0.12)}
+.modal-title{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:#E2E8F0}
+.modal-sub{font-size:11px;color:#8AA0BD;margin-top:5px;font-family:'JetBrains Mono',monospace}
+.modal-close{background:transparent;border:1px solid rgba(148,163,184,0.12);color:#8AA0BD;width:32px;height:32px;border-radius:7px;cursor:pointer;transition:all .15s;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.modal-close:hover{border-color:#FF5252;color:#FF5252}
+</style>
+</head>
+<body>
+<div class="bg-layer bg-radial"></div>
+<div class="bg-layer bg-grid"></div>
+<div class="bg-layer bg-noise"></div>
+<div class="bg-layer bg-scan"></div>
+
+<div class="app">
+  <!-- 顶部 -->
+  <header class="topbar glass">
+    <div class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#00E5FF" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg>
+      </div>
+      <div class="logo-text">
+        <h1>AI 虚拟市场洞察平台</h1>
+        <p>Virtual Market Insight Engine</p>
+      </div>
+    </div>
+    <div class="topbar-divider"></div>
+    <div class="industry-select">
+      <span>行业</span>
+      <select id="industrySel">
+        <option value="auto">汽车 / Automotive</option>
+        <option value="elec">服装 / Rag trade</option>
+        <option value="fmcg">手机 / Cellphone</option>
+      </select>
+    </div>
+    <div class="topbar-status">
+      <div class="status-chip" id="marketStatusChip">
+        <span class="pulse" id="marketPulse"></span>
+        <span id="marketStatusText">虚拟市场未创建</span>
+      </div>
+      <button class="btn btn-ghost" id="settingsBtn" title="设置">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82L4.21 7.2a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.01A1.65 1.65 0 0 0 10 3.25V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        设置
+      </button>
+      <button class="icon-btn" id="createMarketBtn" title="创建虚拟市场" aria-label="创建虚拟市场">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+      </button>
+      <div class="status-chip">
+        <span>虚拟用户</span>
+        <span class="num" id="userCount">0</span>
+      </div>
+      <div class="status-chip">
+        <span>仿真时钟</span>
+        <span class="num font-mono" id="simClock">--:--:--</span>
+      </div>
+      <button class="btn btn-ghost" id="resetBtn" title="重置演示">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+        重置
+      </button>
+    </div>
+  </header>
+
+  <!-- 主区 -->
+  <div class="main">
+    <!-- 左：概念投放 -->
+    <section class="left-panel glass">
+      <div class="panel-title">
+        <span class="dot"></span>概念投放 · Concept Input
+        <span class="tag">STEP 01</span>
+      </div>
+      <div class="left-body">
+        <input type="file" id="fileInput" accept="image/*" style="display:none">
+        <input type="file" id="videoFileInput" accept="video/*" style="display:none">
+        <div class="upload-zone" id="uploadZone">
+          <div class="upload-icon">⬆</div>
+          <div class="upload-hint">上传概念产品外观图</div>
+          <div class="upload-sub">点击或拖拽图片 · JPG / PNG · 已预置示例</div>
+        </div>
+
+        <div>
+          <div class="field-label">演示视频 <span style="color:var(--txt-dim);font-weight:normal">· 可选</span></div>
+          <div class="video-upload">
+            <button type="button" class="btn btn-ghost" id="videoUploadBtn" style="padding:7px 12px;font-size:11px">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+              上传视频
+            </button>
+            <span class="video-name" id="videoName">未选择</span>
+            <button type="button" class="video-clear" id="videoClear" style="display:none" title="清除">×</button>
+          </div>
+        </div>
+
+        <div class="vision-box" id="visionBox" style="display:none">
+          <div class="vision-head">
+            <span class="vision-dot" id="visionDot"></span>
+            <span class="vision-title">AI外观识别</span>
+            <span class="vision-state" id="visionState">识别中…</span>
+            <button type="button" class="vision-toggle" id="visionToggle">展开</button>
+          </div>
+          <div class="vision-body" id="visionBody" style="display:none"></div>
+        </div>
+
+        <div>
+          <div class="field-label">品牌</div>
+          <input class="input" id="brandInput" placeholder="如：蔚来 / 理想 / 比亚迪" value="">
+        </div>
+
+        <div>
+          <div class="field-label">产品方案 <span class="req">· 必填</span></div>
+          <textarea class="input" id="productPlan" placeholder="请描述你的产品概念...">面向新中产家庭的纯电智能SUV，主打"都市穿梭 + 周末远行"双场景。搭载第三代固态电池，CLTC续航780km，15分钟快充补能500km。整车采用"灵动座舱"设计，前排可一键转换为会客/休憩模式，配合L2.9城市NOA，兼顾效率与质感。</textarea>
+        </div>
+
+        <div>
+          <div class="field-label">车身颜色</div>
+          <div class="color-row" id="colorRow">
+            <div class="color-swatch active" data-color="极光青" style="background:linear-gradient(135deg,#00E5FF,#0080FF)"></div>
+            <div class="color-swatch" data-color="星耀黑" style="background:linear-gradient(135deg,#1a1a1a,#000)"></div>
+            <div class="color-swatch" data-color="月华白" style="background:linear-gradient(135deg,#f5f5f5,#e0e0e0)"></div>
+            <div class="color-swatch" data-color="暮光紫" style="background:linear-gradient(135deg,#9C5FFF,#5B2C9C)"></div>
+            <div class="color-swatch" data-color="熔岩橙" style="background:linear-gradient(135deg,#FF6F00,#FFB020)"></div>
+            <div class="color-swatch" data-color="森野绿" style="background:linear-gradient(135deg,#2E7D32,#00E676)"></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="field-label">车型</div>
+          <div class="opt-row" id="carTypeRow">
+            <div class="opt" data-val="轿车">轿车</div>
+            <div class="opt active" data-val="SUV">SUV</div>
+            <div class="opt" data-val="MPV">MPV</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="field-label">尺寸级别</div>
+          <div class="opt-row" id="sizeRow">
+            <div class="opt" data-val="紧凑">紧凑</div>
+            <div class="opt active" data-val="中型">中型</div>
+            <div class="opt" data-val="中大型">中大型</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="field-label">动力类型</div>
+          <div class="opt-row" id="powerRow">
+            <div class="opt" data-val="燃油">燃油</div>
+            <div class="opt" data-val="混动">混动</div>
+            <div class="opt active" data-val="纯电">纯电</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="field-label">续航 / 价位段</div>
+          <div class="slider-row">
+            <span class="label">续航</span>
+            <input type="range" id="rangeSlider" min="300" max="1000" value="780" step="10">
+            <span class="val"><span id="rangeVal">780</span>km</span>
+          </div>
+          <div class="slider-row" style="margin-top:8px">
+            <span class="label">价位</span>
+            <input type="range" id="priceSlider" min="10" max="60" value="28" step="1">
+            <span class="val"><span id="priceVal">28</span>万</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="field-label">目标人群 <span class="hint-text">（可多选）</span></div>
+          <div class="opt-row cols-2" id="audRow">
+            <div class="opt" data-val="都市Z世代">都市Z世代</div>
+            <div class="opt active" data-val="新中产家庭">新中产家庭</div>
+            <div class="opt" data-val="商务精英">商务精英</div>
+            <div class="opt" data-val="户外玩家">户外玩家</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="field-label">核心卖点（多选）</div>
+          <div class="tag-row" id="tagsRow">
+            <div class="tag-pill active" data-tag="长续航">长续航</div>
+            <div class="tag-pill active" data-tag="快充">快充</div>
+            <div class="tag-pill active" data-tag="智能座舱">智能座舱</div>
+            <div class="tag-pill" data-tag="城市NOA">城市NOA</div>
+            <div class="tag-pill" data-tag="空间灵活">空间灵活</div>
+            <div class="tag-pill" data-tag="性价比">性价比</div>
+            <div class="tag-pill" data-tag="豪华质感">豪华质感</div>
+            <div class="tag-pill" data-tag="越野能力">越野能力</div>
+          </div>
+        </div>
+
+        <div class="action-block">
+          <button class="btn btn-primary btn-block" id="analyzeBtn" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-7"/></svg>
+            开始投放
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 中：虚拟市场舞台 -->
+    <section class="center-panel glass">
+      <div class="stage-header">
+        <h2>虚拟市场仿真舞台 · <span>Virtual Market</span></h2>
+        <div class="stage-meta" id="stageMeta">IDLE · 待创建</div>
+      </div>
+      <div class="kpi-strip" id="kpiStrip">
+        <div class="kpi-cell" id="kpiCellNps">
+          <div class="kpi-top">
+            <div class="kpi-v dim" id="kpiNps">--</div>
+            <div class="kpi-delta" id="kpiNpsD">待分析</div>
+          </div>
+          <div class="kpi-l">NPS · 净推荐值</div>
+        </div>
+        <div class="kpi-cell" id="kpiCellIntent">
+          <div class="kpi-top">
+            <div class="kpi-v dim" id="kpiIntent">--</div>
+            <div class="kpi-delta" id="kpiIntentD">待分析</div>
+          </div>
+          <div class="kpi-l">预购意向率</div>
+        </div>
+        <div class="kpi-cell" id="kpiCellReach">
+          <div class="kpi-top">
+            <div class="kpi-v dim" id="kpiReach">--</div>
+            <div class="kpi-delta" id="kpiReachD">待分析</div>
+          </div>
+          <div class="kpi-l">口碑触达</div>
+        </div>
+      </div>
+      <div class="stage">
+        <div class="stage-canvas-wrap">
+          <canvas id="stageCanvas"></canvas>
+
+          <!-- 动作气泡层（分析过程中） -->
+          <div class="action-bubbles" id="actionBubbles"></div>
+
+          <!-- 阶段进度 -->
+          <div class="phase-rail" id="phaseRail"></div>
+
+          <!-- 空状态 -->
+          <div class="stage-empty" id="stageEmpty">
+            <div class="icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+            </div>
+            <h3>虚拟市场尚未启动</h3>
+            <button class="btn btn-amber" id="emptyStartBtn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+              创建虚拟市场
+            </button>
+          </div>
+
+          <!-- 就绪态：满意度雷达 -->
+          <div class="stage-ready" id="stageReady">
+            <div class="ready-ring">
+              <div class="ring-outer"></div>
+              <canvas id="stageRadarChart"></canvas>
+            </div>
+            <div class="ready-caption">满意度指标雷达 · Satisfaction Radar</div>
+            <!-- 六维评分柱状图（分析完成后显示） -->
+            <div class="stage-scores" id="stageScores">
+              <div class="ss-bars" id="ssBars"></div>
+              <div class="ss-advice" id="ssAdvice"></div>
+            </div>
+          </div>
+
+          <!-- 计数器 -->
+          <div class="stage-counter" id="stageCounter" style="display:none">
+            <div class="counter-item">
+              <div class="counter-num" id="cTotal">0</div>
+              <div class="counter-label">虚拟用户</div>
+            </div>
+            <div class="counter-item">
+              <div class="counter-num amber" id="cActive">0</div>
+              <div class="counter-label">活跃中</div>
+            </div>
+            <div class="counter-item">
+              <div class="counter-num" id="cSocial">0</div>
+              <div class="counter-label">社交连接</div>
+            </div>
+          </div>
+
+          <!-- 日志 -->
+          <div class="stage-log" id="stageLog" style="display:none">
+            <div class="log-head">
+              <span class="log-title">运行日志</span>
+              <button class="log-toggle" id="logToggle" title="折叠/展开" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+            </div>
+            <div class="log-body" id="logBody"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 右：洞察仪表盘 -->
+    <section class="right-panel glass">
+      <div class="panel-title">
+        <span class="dot" style="background:var(--amber);box-shadow:0 0 8px var(--amber)"></span>市场洞察 · Insights
+        <span class="tag" id="insightTag" style="color:var(--amber)">待分析</span>
+      </div>
+      <div class="right-body">
+        <!-- 口碑曲线 -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title"><span class="ic">▲</span>口碑传播曲线</div>
+            <div class="card-tabs" id="wowTabs">
+              <div class="card-tab active" data-w="24h">24h</div>
+              <div class="card-tab" data-w="7d">7d</div>
+              <div class="card-tab" data-w="30d">30d</div>
+            </div>
+          </div>
+          <canvas class="chart" id="wowChart" height="120"></canvas>
+        </div>
+
+        <!-- 情绪 -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title"><span class="ic">◉</span>用户情绪指数</div>
+            <div class="card-title font-mono" style="font-size:10px" id="sentScore">NPS --</div>
+          </div>
+          <div class="sentiment-row">
+            <div class="sent-bar pos"><div class="fill" id="sPos"></div></div>
+            <div class="sent-bar neu"><div class="fill" id="sNeu"></div></div>
+            <div class="sent-bar neg"><div class="fill" id="sNeg"></div></div>
+          </div>
+          <div class="sent-legend">
+            <span><i style="background:#00E676"></i>正面<span class="v" id="sPosV">0%</span></span>
+            <span><i style="background:#FFB020"></i>中性<span class="v" id="sNeuV">0%</span></span>
+            <span><i style="background:#FF5252"></i>负面<span class="v" id="sNegV">0%</span></span>
+          </div>
+        </div>
+
+        <!-- 赞赏 / 吐槽 -->
+        <div class="card">
+          <div class="card-head"><div class="card-title" style="color:var(--green)"><span class="ic">＋</span>赞赏 Top5</div></div>
+          <div class="pt-list" id="praiseList"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title" style="color:var(--red)"><span class="ic">－</span>吐槽 Top5</div></div>
+          <div class="pt-list" id="complainList"></div>
+        </div>
+
+        <!-- 漏斗 -->
+        <div class="card">
+          <div class="card-head"><div class="card-title"><span class="ic">▽</span>购买意向漏斗</div></div>
+          <div class="funnel-wrap" id="funnelWrap"></div>
+        </div>
+
+        <!-- 雷达 -->
+        <div class="card">
+          <div class="card-head"><div class="card-title"><span class="ic">◈</span>满意度指标</div></div>
+          <div class="radar-wrap"><canvas class="chart" id="radarChart" height="170"></canvas></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 底部：参数实验室 + 进化日志 -->
+  <div class="bottom">
+    <section class="bottom-left glass">
+      <div class="panel-title">
+        <span class="dot" style="background:var(--amber);box-shadow:0 0 8px var(--amber)"></span>参数调节实验室 · Tuning Lab
+        <span class="tag" id="labTag" style="color:var(--amber)">数据稳定后可调参</span>
+      </div>
+      <div class="lab-body">
+        <div class="lab-intro">拖动滑块调节产品参数，系统将基于参数变化<b>预测口碑传播曲线</b>（橙色虚线）。赞赏、吐槽、漏斗等数据不变，需点击「重新分析」触发完整重算。<span style="color:var(--txt-dim)">续航/价位与概念投放联动。</span></div>
+        <div class="lab-grid">
+          <div class="slider-row"><span class="label">续航</span><input type="range" id="labRange" min="300" max="1000" value="780" step="10"><span class="val"><span id="labRangeV">780</span>km</span></div>
+          <div class="slider-row"><span class="label">价位</span><input type="range" id="labPrice" min="10" max="60" value="28" step="1"><span class="val"><span id="labPriceV">28</span>万</span></div>
+          <div class="slider-row"><span class="label">充电</span><input type="range" id="labCharge" min="5" max="60" value="15" step="1"><span class="val"><span id="labChargeV">15</span>min</span></div>
+          <div class="slider-row"><span class="label">智能化</span><input type="range" id="labSmart" min="1" max="10" value="7" step="1"><span class="val"><span id="labSmartV">7</span>/10</span></div>
+          <div class="slider-row"><span class="label">空间</span><input type="range" id="labSpace" min="1" max="10" value="6" step="1"><span class="val"><span id="labSpaceV">6</span>/10</span></div>
+          <div class="slider-row"><span class="label">豪华感</span><input type="range" id="labLux" min="1" max="10" value="5" step="1"><span class="val"><span id="labLuxV">5</span>/10</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="bottom-right glass">
+      <div class="panel-title">
+        <span class="dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple)"></span>虚拟用户自我进化 · Self-Evolution
+        <span class="tag" style="color:var(--txt-mute)" id="evoTag">本版本未启用</span>
+      </div>
+      <div class="evo-body">
+        <div class="evo-stream" id="evoStream">
+          <div class="evo-item" style="border-left-color:var(--txt-dim);opacity:0.75">
+            <span class="evo-time" style="color:var(--txt-mute)">MVP</span>
+            <span class="evo-text" style="color:var(--txt-mute)">本版本仅实现核心流程：构建虚拟用户 → 评价新车 → 汇总数据。「虚拟用户自我进化」与「蒸馏用户」功能未启用，可由后端 /api 接口后续扩展。</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span class="ic">●</span><span id="toastText"></span></div>
+
+<!-- 分析报告 Modal -->
+<div class="modal-mask" id="reportModal">
+  <div class="modal" style="width:min(680px,100%)">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">分析报告</div>
+        <div class="modal-sub">基于虚拟用户评分及评价整理 · 可下载</div>
+      </div>
+      <button class="modal-close" id="reportClose" type="button">×</button>
+    </div>
+    <div class="report-modal-body">
+      <pre class="report-text" id="reportText">加载中...</pre>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;padding:0 20px 16px">
+      <button class="btn btn-ghost" id="reportCloseBtn" type="button">关闭</button>
+      <a class="btn btn-primary" id="reportDownload" href="#" download>下载报告</a>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ========================================================
+   AI 虚拟市场洞察平台 · 演示逻辑
+   ======================================================== */
+const $ = (id)=>document.getElementById(id);
+const rand = (a,b)=>a+Math.random()*(b-a);
+const randi = (a,b)=>Math.floor(rand(a,b+1));
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+const easeOutCubic = t=>1-Math.pow(1-t,3);
+const easeInOut = t=>t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+
+function getInitialIndustry(){
+  const params = new URLSearchParams(window.location.search);
+  const key = params.get('industry') || 'auto';
+  return INDUSTRIES[key] ? key : 'auto';
+}
+
+/* ---------- 状态 ---------- */
+const state = {
+  industry:'auto',
+  phase:'IDLE', // IDLE / CREATING / READY / ANALYZING / STABLE / TUNING
+  users:[],
+  totalUsers:0,
+  realUserCount:0,
+  hasIndustryPersonas:false,
+  industryMeta:{},
+  bubbles:[],
+  baseline:null,    // 基线数据快照
+  current:null,     // 当前数据（调参后）
+  wowWindow:'24h',
+  evoTimer:null,
+  simTimer:null,
+  actionQueue:[],
+  actionPumpTimer:null,
+  actionIdleTimer:null,
+  actionLastRealAt:0,
+  actionLastBubbleAt:0,
+  params:{range:780,price:28,charge:15,smart:7,space:6,lux:5},
+  conceptImage:{sourceType:'default', name:'系统示意图', note:'已载入系统示意图'},
+  conceptVideo:{name:'', desc:''},
+  visionDescImage:'',   // 图片识别得到的外观描述
+  visionDescVideo:'',   // 视频识别得到的外观描述
+  visionBusy:false
+};
+
+/* ---------- 后端 API 对接 ---------- */
+// Flask 后端地址（见 app.py，默认监听 127.0.0.1:5003）
+const API_BASE = 'http://127.0.0.1:5003';
+
+// 统一 POST 请求封装：失败时抛 Error，成功返回解析后的 json
+async function apiPost(path, body){
+  const resp = await fetch(API_BASE + path, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  });
+  let j;
+  try { j = await resp.json(); } catch(e){
+    throw new Error('后端响应非 JSON（HTTP '+resp.status+'）');
+  }
+  if(j.status !== 'ok') throw new Error(j.message || '请求失败');
+  return j;
+}
+
+async function apiGet(path){
+  const resp = await fetch(API_BASE + path, {method:'GET'});
+  let j;
+  try { j = await resp.json(); } catch(e){
+    throw new Error('后端响应非 JSON（HTTP '+resp.status+'）');
+  }
+  if(j.status !== 'ok') throw new Error(j.message || '请求失败');
+  return j;
+}
+
+// 从左侧"概念输入"面板收集车型参数
+function collectConceptData(){
+  const tags=[...document.querySelectorAll('#tagsRow .tag-pill.active')].map(el=>el.dataset.tag);
+  const colors=[...document.querySelectorAll('#colorRow .color-swatch.active')].map(el=>el.dataset.color);
+  const carTypeEl = document.querySelector('#carTypeRow .opt.active');
+  const sizeEl  = document.querySelector('#sizeRow .opt.active');
+  const powerEl = document.querySelector('#powerRow .opt.active');
+  const audArr  = [...document.querySelectorAll('#audRow .opt.active')].map(el=>el.dataset.val);
+  return {
+    image_source_type: state.conceptImage.sourceType || '',
+    image_name: state.conceptImage.name || '',
+    image_note: state.conceptImage.note || '',
+    video_url: '',
+    video_name: state.conceptVideo.name || '',
+    vision_description: [state.visionDescImage, state.visionDescVideo].filter(Boolean).join('\n\n'),
+    brand:   $('brandInput') ? $('brandInput').value.trim() : '',
+    product_plan: $('productPlan') ? $('productPlan').value : '',
+    colors:  colors,
+    color:   colors.join('、'),
+    car_type: carTypeEl ? carTypeEl.dataset.val : '',
+    size:    sizeEl  ? sizeEl.dataset.val  : '',
+    power:   powerEl ? powerEl.dataset.val : '',
+    range:   +$('rangeSlider').value,
+    price:   +$('priceSlider').value,
+    audience: audArr.join('、'),
+    audiences: audArr,
+    tags:    tags,
+    // 实验室调参维度初始值（首次分析时一并传给后端）
+    charge:  +$('labCharge').value,
+    smart:   +$('labSmart').value,
+    space:   +$('labSpace').value,
+    lux:     +$('labLux').value
+  };
+}
+
+function openSettingsPage(){
+  window.location.href='/settings?industry='+encodeURIComponent(state.industry);
+}
+
+async function refreshIndustryPersonas(){
+  try{
+    const j = await apiGet('/api/personas?industry='+encodeURIComponent(state.industry));
+    state.hasIndustryPersonas = !!j.has_personas;
+    state.industryMeta[state.industry] = j;
+    // 即时显示该行业的虚拟用户数
+    $('userCount').textContent = String((j.personas || []).length);
+  }catch(e){
+    state.hasIndustryPersonas = false;
+    $('userCount').textContent = '0';
+    toast('读取行业虚拟用户失败：'+e.message);
+  }
+  applyIndustryAvailability();
+}
+
+function applyIndustryAvailability(){
+  const ind=INDUSTRIES[state.industry];
+  const emptyBtn=$('emptyStartBtn');
+  if(state.phase==='READY' || state.phase==='ANALYZING' || state.phase==='STABLE' || state.phase==='TUNING'){
+    return;
+  }
+  if(state.hasIndustryPersonas){
+    $('marketStatusText').textContent='虚拟市场未创建';
+    $('stageMeta').textContent='IDLE · 待创建';
+    emptyBtn.onclick=createVirtualMarket;
+    setCreateBtnState('create');
+  }else{
+    $('marketStatusText').textContent='当前行业暂无虚拟用户';
+    $('stageMeta').textContent='IDLE · '+ind.name+'行业待配置';
+    emptyBtn.onclick=openSettingsPage;
+    setCreateBtnState('settings');
+  }
+}
+
+/* ---------- 行业数据 ---------- */
+const INDUSTRIES = {
+  auto:{
+    name:'汽车',
+    personaPool:['都市白领','奶爸车主','科技极客','自驾达人','改装玩家','理性工薪','豪华拥趸','女性车主','网约车司机','越野老炮'],
+    sources:['微博汽车','懂车帝','汽车之家','小红书车圈','抖音车评','B站数码'],
+    praise:['续航扎实无焦虑','快充速度惊艳','座舱交互流畅','空间灵活实用','底盘质感越级','外观辨识度高','智能驾驶稳定','性价比突出'],
+    complain:['价位略高于预期','后排头部压抑','车机偶发卡顿','快充桩覆盖不足','保值率存疑','胎噪偏大','智能驾驶保守','配色选择少'],
+    funnelNames:['认知','兴趣','意向','试驾','预购'],
+    radarLabels:['续航','智能','空间','豪华','性价比','外观']
+  },
+  elec:{
+    name:'服装',
+    personaPool:['时尚达人','极简主义者','性价比党','颜值控','职场白领','学生党','宝妈','运动爱好者'],
+    sources:['小红书','得物','微博时尚','抖音电商','什么值得买','B站穿搭'],
+    praise:['面料舒适透气','版型显瘦显高','做工精细','配色高级','性价比突出','场景适配好'],
+    complain:['定价偏高','尺码偏小','面料一般','配色保守','辨识度低','易起球'],
+    funnelNames:['认知','兴趣','意向','尝鲜','复购'],
+    radarLabels:['面料','设计','做工','性价比','外观','舒适度']
+  },
+  fmcg:{
+    name:'手机',
+    personaPool:['数码发烧友','极简主义者','性价比党','颜值控','生产力用户','学生党','商务人士','游戏玩家'],
+    sources:['酷安','什么值得买','小红书数码','B站评测','知乎数码','抖音科技'],
+    praise:['工艺质感出色','续航超预期','交互丝滑','生态协同好','屏幕素质顶','性价比突出'],
+    complain:['定价偏高','发热明显','系统广告多','配件昂贵','续航一般','配色保守'],
+    funnelNames:['认知','兴趣','意向','体验','预购'],
+    radarLabels:['性能','设计','续航','生态','性价比','外观']
+  }
+};
+
+/* ---------- 工具：Toast ---------- */
+let toastTimer;
+function toast(msg){
+  $('toastText').textContent=msg;
+  $('toast').classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2400);
+}
+
+/* ---------- 选项卡绑定 ---------- */
+function bindOptGroup(containerId, onSelect){
+  const c = $(containerId);
+  c.querySelectorAll('.opt').forEach(el=>{
+    el.addEventListener('click',()=>{
+      c.querySelectorAll('.opt').forEach(x=>x.classList.remove('active'));
+      el.classList.add('active');
+      onSelect && onSelect(el.dataset.val);
+    });
+  });
+}
+function bindOptMulti(containerId, onSelect){
+  const c = $(containerId);
+  c.querySelectorAll('.opt').forEach(el=>{
+    el.addEventListener('click',()=>{
+      el.classList.toggle('active');
+      const vals = [...c.querySelectorAll('.opt.active')].map(x=>x.dataset.val);
+      onSelect && onSelect(vals);
+    });
+  });
+}
+function bindSwatches(containerId, onSelect){
+  const c = $(containerId);
+  c.querySelectorAll('.color-swatch').forEach(el=>{
+    el.addEventListener('click',()=>{
+      el.classList.toggle('active');
+      const colors = [...c.querySelectorAll('.color-swatch.active')].map(x=>x.dataset.color);
+      onSelect && onSelect(colors);
+    });
+  });
+}
+function bindTags(containerId, onSelect){
+  const c = $(containerId);
+  c.querySelectorAll('.tag-pill').forEach(el=>{
+    el.addEventListener('click',()=>{
+      el.classList.toggle('active');
+      const tags = [...c.querySelectorAll('.tag-pill.active')].map(x=>x.dataset.tag);
+      onSelect && onSelect(tags);
+    });
+  });
+}
+
+/* ---------- 滑块进度色 ---------- */
+function paintSlider(el){
+  const min=+el.min,max=+el.max,v=+el.value;
+  el.style.setProperty('--p',((v-min)/(max-min)*100)+'%');
+}
+function bindSlider(id, onInput){
+  const el=$(id);
+  paintSlider(el);
+  el.addEventListener('input',()=>{
+    paintSlider(el);
+    onInput && onInput(+el.value);
+  });
+}
+
+/* ---------- 上传 ---------- */
+const DEFAULT_IMG = "/images/default_img.jpeg";
+function loadDefaultImage(){
+  const zone=$('uploadZone');
+  zone.classList.add('has-img');
+  zone.innerHTML=`<img class="upload-preview" src="${DEFAULT_IMG}" alt="concept"><div class="upload-overlay">点击更换图片</div>`;
+  state.conceptImage = {sourceType:'default', name:'系统示意图', note:'已载入系统示意图'};
+  zone.addEventListener('click',()=>$('fileInput').click());
+}
+
+/* ---------- 多模态视觉识别（独立 LLM API） ---------- */
+const VISION_MAX_BYTES = 30 * 1024 * 1024; // 30MB 上限，避免 base64 过大
+function callVisionApi(file, kind){
+  // kind: 'image' | 'video'
+  if(!file) return;
+  if(file.size > VISION_MAX_BYTES){
+    setVisionState('error', kind, '文件过大（>30MB）');
+    toast('文件过大，请上传 30MB 以内的图片/视频');
+    return;
+  }
+  setVisionState('loading', kind, '识别中…');
+  state.visionBusy = true;
+  $('analyzeBtn').disabled = true;
+  const fd = new FormData();
+  fd.append('file', file);
+  fetch(API_BASE + '/api/vision', { method:'POST', body:fd })
+    .then(r => r.json())
+    .then(j => {
+      if(j.status !== 'ok'){
+        throw new Error(j.message || '识别失败');
+      }
+      const desc = (j.description || '').trim();
+      if(!desc){
+        // 后端未配置视觉 API 或返回空
+        if(j.vision_configured === false){
+          setVisionState('error', kind, '未配置 VISION_API_KEY');
+        } else {
+          setVisionState('error', kind, '识别返回空');
+        }
+      } else {
+        if(kind === 'image') state.visionDescImage = desc;
+        else state.visionDescVideo = desc;
+        setVisionState('done', kind, '已识别外观（'+kind+'）');
+        toast('AI外观识别完成 · 结果已作为外观评价因素');
+      }
+    })
+    .catch(err => {
+      setVisionState('error', kind, '识别失败：' + (err.message||err));
+    })
+    .finally(()=>{
+      state.visionBusy = false;
+      if(state.phase==='READY'||state.phase==='STABLE'||state.phase==='TUNING'){
+        $('analyzeBtn').disabled=false;
+      }
+    });
+}
+
+function setVisionState(phase, kind, msg){
+  // phase: 'loading' | 'done' | 'error'
+  const box = $('visionBox');
+  const dot = $('visionDot');
+  const st = $('visionState');
+  const body = $('visionBody');
+  box.style.display = '';
+  dot.className = 'vision-dot ' + phase;
+  st.className = 'vision-state ' + phase;
+  st.textContent = msg || '';
+  // 内容区显示当前已有描述
+  const currentDesc = [state.visionDescImage, state.visionDescVideo].filter(Boolean).join('\n\n');
+  if(currentDesc){
+    body.innerHTML = '';
+    const pre = document.createElement('div');
+    pre.textContent = currentDesc;
+    body.appendChild(pre);
+  } else if(phase === 'error'){
+    body.innerHTML = '<div class="vision-empty">暂无外观描述，外观维度将仅依据颜色/尺寸等参数评价</div>';
+  } else {
+    body.innerHTML = '<div class="vision-empty">等待识别结果…</div>';
+  }
+  if(phase === 'done'){
+    $('visionToggle').textContent = '展开';
+    // 识别成功后自动展开一次，让用户看到结果
+    if(body.style.display === 'none'){ toggleVisionBody(true); }
+  }
+}
+
+function toggleVisionBody(forceShow){
+  const body = $('visionBody');
+  const btn = $('visionToggle');
+  const show = forceShow !== undefined ? forceShow : (body.style.display === 'none');
+  body.style.display = show ? '' : 'none';
+  btn.textContent = show ? '收起' : '展开';
+}
+
+function clearVideo(){
+  state.conceptVideo = {name:'', desc:''};
+  state.visionDescVideo = '';
+  $('videoName').textContent = '未选择';
+  $('videoName').classList.remove('has-file');
+  $('videoFileInput').value = '';
+  $('videoClear').style.display = 'none';
+  // 刷新视觉识别框
+  const hasImg = !!state.visionDescImage;
+  const hasVid = !!state.visionDescVideo;
+  if(!hasImg && !hasVid){
+    $('visionBox').style.display = 'none';
+  } else {
+    setVisionState(hasVid ? 'done' : (hasImg ? 'done' : 'loading'),
+      'video', hasVid ? '已识别外观（视频）' : (hasImg ? '仅图片已识别' : ''));
+  }
+}
+
+/* ---------- 阶段定义 ---------- */
+const PHASES = [
+  {key:'load', label:'载入虚拟用户'},
+  {key:'init', label:'初始化 Agent'},
+  {key:'ready', label:'虚拟市场就绪'}
+];
+const PHASE_LOGS = {
+  load:[
+    '读取 personas/<industry>.json…',
+    '解析虚拟用户规格',
+    '校验画像完整性',
+    '规格载入完成'
+  ],
+  init:[
+    '创建 TinyPerson 实例…',
+    '注入性格与偏好参数',
+    '初始化 Agent 决策引擎',
+    'Agent 状态就绪'
+  ],
+  ready:[
+    '构建用户关系网络',
+    '同步市场环境配置',
+    '虚拟市场已激活 ✓'
+  ]
+};
+
+/* ---------- 渲染阶段轨道 ---------- */
+function renderPhaseRail(){
+  const rail=$('phaseRail');
+  rail.innerHTML='';
+  PHASES.forEach((p,i)=>{
+    const el=document.createElement('div');
+    el.className='phase';
+    el.dataset.idx=i;
+    el.innerHTML=`<div class="phase-dot">${i+1}</div><div class="phase-label">${p.label}</div>`;
+    rail.appendChild(el);
+    if(i<PHASES.length-1){
+      const ln=document.createElement('div');
+      ln.className='phase-line';
+      rail.appendChild(ln);
+    }
+  });
+}
+function setPhase(idx){
+  const phases=[...document.querySelectorAll('.phase')];
+  const lines=[...document.querySelectorAll('.phase-line')];
+  phases.forEach((p,i)=>{
+    p.classList.remove('active','done');
+    if(i<idx) p.classList.add('done');
+    if(i===idx) p.classList.add('active');
+  });
+  lines.forEach((l,i)=>{ if(i<idx) l.classList.add('done'); else l.classList.remove('done'); });
+}
+
+/* ---------- 舞台 Canvas ---------- */
+const stageCanvas=$('stageCanvas');
+const sctx=stageCanvas.getContext('2d');
+let stageW=0,stageH=0,dpr=window.devicePixelRatio||1;
+function resizeStage(){
+  const r=stageCanvas.getBoundingClientRect();
+  stageW=r.width;stageH=r.height;
+  stageCanvas.width=stageW*dpr;stageCanvas.height=stageH*dpr;
+  sctx.setTransform(dpr,0,0,dpr,0,0);
+}
+window.addEventListener('resize',()=>{resizeStage();});
+
+/* 气泡：虚拟用户 */
+class Bubble{
+  constructor(){
+    const ind=INDUSTRIES[state.industry];
+    this.id=Math.random().toString(36).slice(2,8);
+    this.persona=ind.personaPool[randi(0,ind.personaPool.length-1)];
+    this.x=rand(60,stageW-60);
+    this.y=rand(80,stageH-60);
+    this.tx=this.x;this.ty=this.y;
+    this.r=rand(10,20);
+    this.hue=rand(170,200);
+    this.life=0;
+    this.maxLife=rand(8,16);
+    this.vx=rand(-0.3,0.3);this.vy=rand(-0.3,0.3);
+    this.alpha=0;
+  }
+  update(dt){
+    this.life+=dt;
+    // 漂浮
+    this.x+=this.vx;this.y+=this.vy;
+    if(this.x<this.r||this.x>stageW-this.r)this.vx*=-1;
+    if(this.y<this.r||this.y>stageH-this.r)this.vy*=-1;
+    // 透明度：淡入淡出
+    const t=this.life/this.maxLife;
+    if(t<0.15)this.alpha=easeOutCubic(t/0.15);
+    else if(t>0.85)this.alpha=1-easeOutCubic((t-0.85)/0.15);
+    else this.alpha=1;
+  }
+  draw(ctx){
+    const a=this.alpha*0.9;
+    // 外层光晕
+    const g=ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,this.r*2.4);
+    g.addColorStop(0,`hsla(${this.hue},100%,60%,${a*0.35})`);
+    g.addColorStop(1,`hsla(${this.hue},100%,60%,0)`);
+    ctx.fillStyle=g;
+    ctx.beginPath();ctx.arc(this.x,this.y,this.r*2.4,0,Math.PI*2);ctx.fill();
+    // 主体
+    ctx.fillStyle=`hsla(${this.hue},90%,55%,${a*0.5})`;
+    ctx.strokeStyle=`hsla(${this.hue},100%,70%,${a})`;
+    ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fill();ctx.stroke();
+    // 中心点
+    ctx.fillStyle=`hsla(${this.hue},100%,80%,${a})`;
+    ctx.beginPath();ctx.arc(this.x,this.y,1.5,0,Math.PI*2);ctx.fill();
+  }
+  dead(){return this.life>=this.maxLife;}
+}
+
+/* 连线 */
+function drawConnections(){
+  const live=state.bubbles.filter(b=>b.alpha>0.3);
+  sctx.lineWidth=0.5;
+  for(let i=0;i<live.length;i++){
+    for(let j=i+1;j<live.length;j++){
+      const a=live[i],b=live[j];
+      const dx=a.x-b.x,dy=a.y-b.y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<90){
+        const al=(1-d/90)*0.18*Math.min(a.alpha,b.alpha);
+        sctx.strokeStyle=`rgba(0,229,255,${al})`;
+        sctx.beginPath();sctx.moveTo(a.x,a.y);sctx.lineTo(b.x,b.y);sctx.stroke();
+      }
+    }
+  }
+}
+
+let lastT=performance.now();
+function stageLoop(now){
+  const dt=Math.min(0.05,(now-lastT)/1000);
+  lastT=now;
+  sctx.clearRect(0,0,stageW,stageH);
+
+  // 背景脉冲圈
+  if(state.phase==='CREATING'||state.phase==='READY'){
+    const cx=stageW/2,cy=stageH/2;
+    const t=now/1000;
+    for(let i=0;i<3;i++){
+      const p=(t*0.3+i/3)%1;
+      sctx.strokeStyle=`rgba(0,229,255,${(1-p)*0.15})`;
+      sctx.lineWidth=1;
+      sctx.beginPath();sctx.arc(cx,cy,40+p*180,0,Math.PI*2);sctx.stroke();
+    }
+  }
+
+  drawConnections();
+
+  // 更新气泡
+  state.bubbles.forEach(b=>b.update(dt));
+  state.bubbles=state.bubbles.filter(b=>!b.dead());
+  state.bubbles.forEach(b=>b.draw(sctx));
+
+  requestAnimationFrame(stageLoop);
+}
+
+function spawnBubbles(n){
+  for(let i=0;i<n;i++){
+    setTimeout(()=>{
+      if(state.bubbles.length<120) state.bubbles.push(new Bubble());
+    },i*40);
+  }
+}
+
+/* ---------- 阶段日志 ---------- */
+function appendStageLog(text, ok){
+  const log=$('stageLog');
+  const body=$('logBody');
+  if(log.style.display==='none') log.style.display='block';
+  const t=new Date();
+  const ts=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+':'+String(t.getSeconds()).padStart(2,'0');
+  const ln=document.createElement('div');
+  ln.className='ln'+(ok?' ok':'');
+  ln.innerHTML=`<span class="t">${ts}</span> ${text}`;
+  body.appendChild(ln);
+  while(body.children.length>10) body.removeChild(body.firstChild);
+  requestAnimationFrame(()=>ln.classList.add('show'));
+  body.scrollTop=body.scrollHeight;
+}
+
+/* ---------- 计数器动画 ---------- */
+function animateCounter(el,target,dur=1000){
+  const start=parseInt(el.textContent.replace(/,/g,''))||0;
+  const t0=performance.now();
+  function step(now){
+    const t=Math.min(1,(now-t0)/dur);
+    const v=Math.round(start+(target-start)*easeOutCubic(t));
+    el.textContent=v.toLocaleString();
+    if(t<1)requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* ---------- 创建虚拟市场 ---------- */
+let createTimers=[];
+function clearCreateTimers(){createTimers.forEach(clearTimeout);createTimers=[];}
+
+async function createVirtualMarket(){
+  if(state.phase==='CREATING')return;
+  if(!state.hasIndustryPersonas){
+    openSettingsPage();
+    return;
+  }
+  clearCreateTimers();
+  $('stageEmpty').style.display='none';
+  $('stageReady').classList.remove('show');
+  $('stageScores').classList.remove('show');
+  $('stageLog').style.display='block';
+  $('stageLog').classList.remove('collapsed');
+  $('logBody').innerHTML='';
+  $('stageCounter').style.display='flex';
+  // 即时显示虚拟用户数（载入完成前，从已缓存的行业画像数据读取）
+  const _personaCount = (state.industryMeta[state.industry] && state.industryMeta[state.industry].personas)
+    ? state.industryMeta[state.industry].personas.length : 0;
+  $('cTotal').textContent = String(_personaCount);
+  $('cActive').textContent = '0';
+  $('cSocial').textContent = '0';
+  state.phase='CREATING';
+  $('marketPulse').className='pulse creating';
+  $('marketStatusText').textContent='正在创建虚拟市场…';
+  $('stageMeta').textContent='CREATING · 加载已保存虚拟用户';
+  $('createMarketBtn').disabled=true;
+  $('createMarketBtn').classList.add('spinning');
+  $('analyzeBtn').disabled=true;
+
+  // 并行发起后端创建请求（从已保存规格加载真实虚拟用户）
+  const apiPromise = apiPost('/api/create_market', {industry:state.industry, num_users:5})
+    .then(j=>({ok:true, data:j}))
+    .catch(e=>({ok:false, message:e.message||String(e)}));
+
+  // 阶段动画（3 阶段，反映真实载入流程）
+  const phaseLabels = PHASES.length;
+  for(let i=0;i<phaseLabels;i++){
+    setPhase(i);
+    $('stageMeta').textContent=`PHASE ${i+1}/${phaseLabels} · ${PHASES[i].label}`;
+    const logs=PHASE_LOGS[PHASES[i].key];
+    for(const lg of logs){
+      appendStageLog(lg, false);
+      await sleep(rand(280,460));
+    }
+    spawnBubbles(i===phaseLabels-1?40:18);
+    appendStageLog(`阶段 ${i+1} 完成 ✓`, true);
+    await sleep(rand(300,500));
+  }
+
+  // 等待后端加载完成
+  $('stageMeta').textContent='CREATING · 等待 Agent 初始化完成...';
+  const apiResult = await apiPromise;
+
+  if(apiResult.ok){
+    state.realUserCount = apiResult.data.real_user_count;
+    state.totalUsers = apiResult.data.total_users;
+    state.userProfiles = apiResult.data.profiles || [];
+    const realCount = state.realUserCount;
+    // 真实 KPI：虚拟用户数 = 实际载入数；活跃中 = 全部活跃；社交连接 = N*(N-1)/2
+    const socialLinks = Math.floor(realCount * (realCount - 1) / 2);
+    animateCounter($('cTotal'), realCount, 800);
+    animateCounter($('cActive'), realCount, 800);
+    animateCounter($('cSocial'), socialLinks, 800);
+    appendStageLog(`已载入 ${realCount} 个虚拟用户，社交关系网络 ${socialLinks} 条 ✓`, true);
+    toast(`虚拟市场已就绪 · ${realCount} 个真实虚拟用户`);
+  } else {
+    appendStageLog(`API 创建失败：${apiResult.message}（已降级为模拟模式）`, false);
+    if(String(apiResult.message).includes('当前行业还没有虚拟用户')){
+      toast('当前行业没有虚拟用户，正在进入设置页');
+      resetAll();
+      openSettingsPage();
+      return;
+    }
+    toast(`API 创建失败，使用模拟数据：${apiResult.message}`);
+  }
+
+  state.phase='READY';
+  $('marketPulse').className='pulse live';
+  $('marketStatusText').textContent='虚拟市场已就绪';
+  $('stageMeta').textContent='READY · 等待分析';
+  $('userCount').textContent=String(state.realUserCount || 0);
+  $('stageReady').classList.add('show');
+  // 就绪态先绘制空雷达网格（等布局就绪）
+  requestAnimationFrame(()=>renderRadar([],'stageRadarChart',{fontSize:12,labelGap:20,dotR:4,pad:44}));
+  // 柱状图占位（淡化显示作为背景）
+  renderStageScoresPlaceholder();
+  $('analyzeBtn').disabled=false;
+  $('createMarketBtn').disabled=false;
+  $('createMarketBtn').classList.remove('spinning');
+  setCreateBtnState('rebuild');
+  startSimClock();
+}
+
+/* 创建按钮图标/标题切换 */
+function setCreateBtnState(mode){
+  const btn=$('createMarketBtn');
+  if(mode==='rebuild'){
+    btn.title='重建虚拟市场';
+    btn.setAttribute('aria-label','重建虚拟市场');
+    btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>';
+  }else if(mode==='settings'){
+    btn.title='前往设置';
+    btn.setAttribute('aria-label','前往设置');
+    btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82L4.21 7.2a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.01A1.65 1.65 0 0 0 10 3.25V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
+  }else{
+    btn.title='创建虚拟市场';
+    btn.setAttribute('aria-label','创建虚拟市场');
+    btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>';
+  }
+}
+
+function sleep(ms){return new Promise(r=>createTimers.push(setTimeout(r,ms)));}
+
+/* ---------- 仿真时钟 ---------- */
+function startSimClock(){
+  if(state.simTimer)return;
+  let simMin=0;
+  const update=()=>{
+    simMin+=1;
+    const h=Math.floor(simMin/60)%24,m=simMin%60,s=Math.floor((Date.now()/1000)%60);
+    $('simClock').textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  };
+  update();
+  state.simTimer=setInterval(update,1000);
+}
+
+/* ---------- 数据生成（基线） ---------- */
+function genBaseline(params){
+  const ind=INDUSTRIES[state.industry];
+  // 根据参数计算"市场反应"
+  const rangeScore=clamp((params.range-400)/600,0,1);       // 续航
+  const priceScore=clamp(1-(params.price-10)/50,0,1);       // 价格越低越好
+  const chargeScore=clamp(1-(params.charge-5)/55,0,1);      // 充电越快越好
+  const smartScore=params.smart/10;
+  const spaceScore=params.space/10;
+  const luxScore=params.lux/10;
+
+  const overall=(rangeScore*0.22+priceScore*0.20+chargeScore*0.13+smartScore*0.18+spaceScore*0.15+luxScore*0.12);
+  // NPS -10~60
+  const nps=Math.round(-10+overall*70+rand(-4,4));
+  // 情绪
+  const pos=clamp(Math.round(overall*65+rand(-5,8)),20,82);
+  const neg=clamp(Math.round((1-overall)*55+rand(-5,5)),8,55);
+  const neu=100-pos-neg;
+  // 漏斗
+  const cognition=randi(85,98);
+  const interest=Math.round(cognition*(0.4+overall*0.45));
+  const intent=Math.round(interest*(0.35+overall*0.4));
+  const trial=Math.round(intent*(0.5+overall*0.3));
+  const prebuy=Math.round(trial*(0.55+overall*0.3));
+  // 口碑触达（按实际样本数据反映）
+  const reach=Math.round(state.totalUsers*overall*rand(2.2,3.5));
+  // 赞赏 / 吐槽 取自池
+  const praise=shuffle([...ind.praise]).slice(0,5).map((t,i)=>({text:t,n:Math.round((80-i*12)*overall+rand(5,15))}));
+  const complain=shuffle([...ind.complain]).slice(0,5).map((t,i)=>({text:t,n:Math.round((70-i*10)*(1-overall*0.6)+rand(5,15))}));
+  // 口碑曲线（24点）
+  const wow24=genWowSeries(24,overall,1);
+  const wow7=genWowSeries(28,overall,7);
+  const wow30=genWowSeries(30,overall,30);
+  // 雷达
+  const radar=[rangeScore,smartScore,spaceScore,luxScore,priceScore,0.5+rand(-0.1,0.1)];
+
+  return {params,nps,pos,neu,neg,cognition,interest,intent,trial,prebuy,reach,praise,complain,wow24,wow7,wow30,radar,overall};
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function genWowSeries(n,overall,scale){
+  const arr=[];let v=overall*0.4;
+  for(let i=0;i<n;i++){
+    const tgt=overall*rand(0.5,1.1);
+    v+=(tgt-v)*0.3+rand(-0.06,0.08);
+    v=clamp(v,0.05,0.98);
+    arr.push(v);
+  }
+  return arr;
+}
+
+/* ---------- 分析 ---------- */
+let analyzeAnim=[];
+async function analyzeMarket(){
+  if(state.phase!=='READY'&&state.phase!=='STABLE'&&state.phase!=='TUNING')return;
+  $('analyzeBtn').disabled=true;
+  state.phase='ANALYZING';
+  clearActionBubbles();
+  startActionBubbleIdleLoop();
+  $('insightTag').textContent='分析中…';
+  $('insightTag').style.color='var(--amber)';
+  $('insightTag').onclick=null;
+  $('insightTag').classList.remove('report-link');
+  $('stageMeta').textContent='ANALYZING · Agent 决策仿真中…';
+
+  // 收集左侧"概念输入"面板的车型参数，同步当前实验室调参值
+  const concept=collectConceptData();
+  state.params={range:concept.range,price:concept.price,charge:concept.charge,smart:concept.smart,space:concept.space,lux:concept.lux};
+
+  // 流式调用后端：每完成一个用户即推送动作气泡
+  let baseline;
+  try{
+    appendStageLog('用户正在评估新车概念（TinyTroupe listen_and_act）...', false);
+    baseline = await streamAnalyze(concept);
+    appendStageLog(`评价完成 · ${baseline.agents?baseline.agents.length:0} 个虚拟用户已给出反馈 ✓`, true);
+  } catch(e){
+    stopActionBubbleIdleLoop();
+    appendStageLog(`API 分析失败：${e.message}（已降级为模拟数据）`, false);
+    toast(`API 分析失败，使用模拟数据：${e.message}`);
+    baseline = genBaseline(state.params);
+  }
+  state.baseline=baseline;
+  state.current=JSON.parse(JSON.stringify(baseline));
+
+  // 重置视图
+  $('sPos').style.width='0';$('sNeu').style.width='0';$('sNeg').style.width='0';
+  renderPraise([],true);renderComplain([],true);renderFunnel([0,0,0,0,0]);
+  renderRadar([],'radarChart',{fontSize:9,labelGap:14,dotR:2.5,pad:28});
+  renderRadar([],'stageRadarChart',{fontSize:12,labelGap:20,dotR:4,pad:44});
+  $('stageScores').classList.remove('show');
+
+  await sleep(600);
+
+  // 1. 口碑曲线
+  drawWowChart(baseline,true);
+  await sleep(700);
+
+  // 2. 情绪
+  $('sPos').style.width=baseline.pos+'%';
+  $('sNeu').style.width=baseline.neu+'%';
+  $('sNeg').style.width=baseline.neg+'%';
+  $('sPosV').textContent=baseline.pos+'%';
+  $('sNeuV').textContent=baseline.neu+'%';
+  $('sNegV').textContent=baseline.neg+'%';
+  $('sentScore').textContent='NPS '+baseline.nps;
+  await sleep(500);
+
+  // 3. 赞赏吐槽
+  renderPraise(baseline.praise);
+  renderComplain(baseline.complain);
+  await sleep(500);
+
+  // 4. 漏斗
+  renderFunnel([baseline.cognition,baseline.interest,baseline.intent,baseline.trial,baseline.prebuy]);
+  await sleep(500);
+
+  // 5. 雷达（右侧卡片 + 中央舞台）
+  renderRadar(baseline.radar,'radarChart',{fontSize:9,labelGap:14,dotR:2.5,pad:28});
+  renderRadar(baseline.radar,'stageRadarChart',{fontSize:12,labelGap:20,dotR:4,pad:44});
+  renderStageScores(baseline.radar);
+  await sleep(300);
+
+  state.phase='STABLE';
+  stopActionBubbleIdleLoop();
+  $('insightTag').textContent='分析报告';
+  $('insightTag').style.color='var(--cyan)';
+  $('insightTag').classList.add('report-link');
+  $('insightTag').onclick=openReportModal;
+  $('labTag').textContent='可调参';
+  $('labTag').style.color='var(--green)';
+  $('stageMeta').textContent='STABLE · 数据已稳定';
+  $('analyzeBtn').disabled=false;
+  $('analyzeBtn').innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>重新投放';
+  updateKPI(baseline,true);
+  toast('分析完成 · NPS '+baseline.nps+' · 预购意向 '+baseline.prebuy+'%');
+  // 「虚拟用户自我进化」功能本版本未启用，不调用 startEvolution()
+}
+
+/* ---------- 流式分析：NDJSON 逐行读取 ---------- */
+async function streamAnalyze(concept){
+  const resp = await fetch(API_BASE+'/api/analyze',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(concept)
+  });
+  if(!resp.ok){
+    const err = await resp.json().catch(()=>({message:'HTTP '+resp.status}));
+    throw new Error(err.message||'HTTP '+resp.status);
+  }
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let baseline = null;
+  while(true){
+    const {done, value} = await reader.read();
+    if(done) break;
+    buffer += decoder.decode(value, {stream:true});
+    const lines = buffer.split('\n');
+    buffer = lines.pop();
+    for(const line of lines){
+      if(!line.trim()) continue;
+      try{
+        const event = JSON.parse(line);
+        if(event.type==='user_done'){
+          enqueueActionBubbles(event.name, event.actions, {synthetic:false});
+        } else if(event.type==='complete'){
+          baseline = event.data;
+        } else if(event.type==='error'){
+          throw new Error(event.message);
+        }
+      }catch(e){
+        if(e.message) throw e;
+      }
+    }
+  }
+  if(!baseline) throw new Error('未收到分析结果');
+  return baseline;
+}
+
+/* ---------- 动作气泡 ---------- */
+function clearActionBubbles(){
+  const c = $('actionBubbles');
+  if(c) c.innerHTML = '';
+  state.actionQueue = [];
+  state.actionLastRealAt = 0;
+  state.actionLastBubbleAt = 0;
+  if(state.actionPumpTimer){
+    clearTimeout(state.actionPumpTimer);
+    state.actionPumpTimer = null;
+  }
+  stopActionBubbleIdleLoop();
+}
+
+function escapeHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function normalizeBubbleType(type){
+  const raw = String(type || 'THINK').toUpperCase();
+  if(raw === 'TALK') return 'SAY';
+  if(raw === 'WRITE_DOCUMENT' || raw.startsWith('WRITE')) return 'WRITE';
+  if(raw === 'THINK' || raw === 'SAY' || raw === 'WRITE' || raw === 'DO') return raw;
+  return 'DO';
+}
+
+function formatBubbleContent(action){
+  const type = normalizeBubbleType(action.type);
+  const content = String(action.content || '').trim();
+  const target = String(action.target || '').trim();
+  if(!target || !content) return content || '...';
+  if(type === 'SAY') return `对 ${target} 说：${content}`;
+  if(type === 'WRITE') return `发布到 ${target}：${content}`;
+  if(type === 'DO') return `${content} · ${target}`;
+  return content;
+}
+
+function enqueueActionBubbles(userName, actions, options={}){
+  const synthetic = Boolean(options.synthetic);
+  const maxBubbles = synthetic ? 1 : 5;
+  const normalized = (actions || [])
+    .slice(0, maxBubbles)
+    .map(action=>({
+      userName,
+      synthetic,
+      type:normalizeBubbleType(action.type),
+      rawType:String(action.raw_type || action.type || '').toUpperCase(),
+      target:String(action.target || '').trim(),
+      content:formatBubbleContent(action)
+    }))
+    .filter(action=>action.content);
+
+  if(!normalized.length) return;
+  if(!synthetic) state.actionLastRealAt = Date.now();
+  state.actionQueue.push(...normalized);
+  pumpActionBubbles();
+}
+
+function startActionBubbleIdleLoop(){
+  stopActionBubbleIdleLoop();
+  state.actionLastRealAt = Date.now();
+  state.actionIdleTimer = setInterval(()=>{
+    if(state.phase !== 'ANALYZING') return;
+  }, 1200);
+}
+
+function stopActionBubbleIdleLoop(){
+  if(state.actionIdleTimer){
+    clearInterval(state.actionIdleTimer);
+    state.actionIdleTimer = null;
+  }
+}
+
+function pumpActionBubbles(){
+  if(state.actionPumpTimer || !state.actionQueue.length) return;
+  const next = state.actionQueue.shift();
+  const delay = next.synthetic ? 180 : 90;
+  state.actionPumpTimer = setTimeout(()=>{
+    state.actionPumpTimer = null;
+    renderActionBubble(next.userName, next);
+    const queuePressure = Math.min(state.actionQueue.length, 6);
+    const nextGap = Math.max(550, 1100 - queuePressure * 90);
+    if(state.actionQueue.length) {
+      state.actionPumpTimer = setTimeout(()=>{
+        state.actionPumpTimer = null;
+        pumpActionBubbles();
+      }, nextGap);
+    }
+  }, delay);
+}
+
+function renderActionBubble(userName, action){
+  const container = $('actionBubbles');
+  if(!container) return;
+  const rect = container.getBoundingClientRect();
+  const w = rect.width || 600;
+  const h = rect.height || 400;
+  const bubble = document.createElement('div');
+  bubble.className = 'action-bubble';
+  const bw = action.type === 'WRITE' ? 280 : 248;
+  const x = rand(15, Math.max(30, w - bw - 15));
+  const y = rand(15, Math.max(30, h - 78));
+  bubble.style.left = x + 'px';
+  bubble.style.top = y + 'px';
+  bubble.style.width = bw + 'px';
+  const type = normalizeBubbleType(action.type);
+  const content = action.content || '...';
+  bubble.innerHTML = `
+    <div class="ab-head">
+      <span class="ab-user">${escapeHtml(userName)}</span>
+      <span class="ab-type ${type}">${type}</span>
+    </div>
+    <div class="ab-content">${escapeHtml(content)}</div>
+  `;
+  container.appendChild(bubble);
+  state.actionLastBubbleAt = Date.now();
+
+  const stayMs = action.synthetic ? 4200 : (type === 'WRITE' ? 7600 : 6800);
+  const fadeMs = action.synthetic ? 700 : 1100;
+  setTimeout(()=>{
+    bubble.classList.add('fading');
+    setTimeout(()=>{ if(bubble.parentNode) bubble.remove(); }, fadeMs); }, stayMs);
+
+  while(container.children.length > 14){
+    container.removeChild(container.firstChild);
+  }
+}
+
+/* ---------- 分析报告 ---------- */
+async function openReportModal(){
+  $('reportText').textContent = '加载中...';
+  $('reportModal').classList.add('show');
+  try{
+    const j = await apiGet('/api/report/preview');
+    $('reportText').textContent = j.report || '暂无报告内容';
+  }catch(e){
+    $('reportText').textContent = '加载失败：' + e.message;
+  }
+  $('reportDownload').href = API_BASE + '/api/report';
+}
+
+function closeReportModal(){
+  $('reportModal').classList.remove('show');
+}
+
+/* ---------- 渲染：赞赏/吐槽 ---------- */
+function renderPraise(list,empty){
+  const c=$('praiseList');c.innerHTML='';
+  const max=list.length?list[0].n:1;
+  list.forEach((it,i)=>{
+    const el=document.createElement('div');
+    el.className='pt-item';
+    el.innerHTML=`<div class="pt-rank">${i+1}</div><div class="pt-bar pos"><div class="fill" style="width:0%"><span class="pt-text">${it.text}</span></div></div><div class="pt-num">${it.n}</div>`;
+    c.appendChild(el);
+    setTimeout(()=>el.querySelector('.fill').style.width=(it.n/max*100)+'%',i*80);
+  });
+}
+function renderComplain(list,empty){
+  const c=$('complainList');c.innerHTML='';
+  const max=list.length?list[0].n:1;
+  list.forEach((it,i)=>{
+    const el=document.createElement('div');
+    el.className='pt-item';
+    el.innerHTML=`<div class="pt-rank">${i+1}</div><div class="pt-bar neg"><div class="fill" style="width:0%"><span class="pt-text">${it.text}</span></div></div><div class="pt-num">${it.n}</div>`;
+    c.appendChild(el);
+    setTimeout(()=>el.querySelector('.fill').style.width=(it.n/max*100)+'%',i*80);
+  });
+}
+
+/* ---------- 渲染：漏斗 ---------- */
+function renderFunnel(vals){
+  const ind=INDUSTRIES[state.industry];
+  const c=$('funnelWrap');c.innerHTML='';
+  const max=vals[0]||1;
+  ind.funnelNames.forEach((name,i)=>{
+    const v=vals[i]||0;
+    const pct=i===0?100:Math.round(v/max*100);
+    const conv=i===0?'—':Math.round(v/vals[i-1]*100)+'%';
+    const el=document.createElement('div');
+    el.className='funnel-stage';
+    el.innerHTML=`<div class="funnel-name">${name}</div><div class="funnel-bar"><div class="fill" style="width:0%"><span class="pct">${v}%</span></div></div><div class="funnel-conv">${conv}</div>`;
+    c.appendChild(el);
+    setTimeout(()=>el.querySelector('.fill').style.width=pct+'%',i*120);
+  });
+}
+
+/* ---------- 渲染：口碑曲线（Canvas） ---------- */
+function setupChart(canvas){
+  const r=canvas.getBoundingClientRect();
+  const w=Math.max(1,r.width),h=Math.max(1,r.height);
+  canvas.width=w*dpr;canvas.height=h*dpr;
+  canvas.style.width=w+'px';canvas.style.height=h+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx,w,h};
+}
+function drawWowChart(data, baseline){
+  const c=$('wowChart');
+  const {ctx,w,h}=setupChart(c);
+  const padL=30,padR=10,padT=10,padB=18;
+  const cw=w-padL-padR,ch=h-padT-padB;
+  ctx.clearRect(0,0,w,h);
+  // 网格
+  ctx.strokeStyle='rgba(148,163,184,0.08)';ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const y=padT+ch*i/4;
+    ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(w-padR,y);ctx.stroke();
+    ctx.fillStyle='#5A6B85';ctx.font='9px JetBrains Mono';ctx.textAlign='right';
+    ctx.fillText((100-i*25)+'%',padL-6,y+3);
+  }
+  const arr=state.wowWindow==='24h'?data.wow24:state.wowWindow==='7d'?data.wow7:data.wow30;
+  // 基线
+  drawLine(ctx,arr,padL,padT,cw,ch,'rgba(0,229,255,0.9)',true);
+  // 对比（调参后）
+  if(state.current && state.current!==data && state.current._tuned){
+    const tunedArr=state.wowWindow==='24h'?state.current.wow24:state.wowWindow==='7d'?state.current.wow7:state.current.wow30;
+    drawDashedLine(ctx,tunedArr,padL,padT,cw,ch,'rgba(255,176,32,0.9)');
+  }
+  // X轴标签
+  const n=arr.length;
+  const lbls=state.wowWindow==='24h'?['0h','6h','12h','18h','24h']:state.wowWindow==='7d'?['D1','D7','D14','D21','D28']:['D1','D7','D14','D21','D30'];
+  ctx.fillStyle='#5A6B85';ctx.font='9px JetBrains Mono';ctx.textAlign='center';
+  lbls.forEach((l,i)=>{
+    const x=padL+cw*i/(lbls.length-1);
+    ctx.fillText(l,x,h-4);
+  });
+}
+function drawLine(ctx,arr,padL,padT,cw,ch,color,fill){
+  const n=arr.length;
+  ctx.strokeStyle=color;ctx.lineWidth=2;
+  ctx.beginPath();
+  arr.forEach((v,i)=>{
+    const x=padL+cw*i/(n-1);
+    const y=padT+ch*(1-v);
+    if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  if(fill){
+    const g=ctx.createLinearGradient(0,padT,0,padT+ch);
+    g.addColorStop(0,'rgba(0,229,255,0.28)');
+    g.addColorStop(1,'rgba(0,229,255,0)');
+    ctx.lineTo(padL+cw,padT+ch);ctx.lineTo(padL,padT+ch);ctx.closePath();
+    ctx.fillStyle=g;ctx.fill();
+  }
+  // 点
+  arr.forEach((v,i)=>{
+    const x=padL+cw*i/(n-1);const y=padT+ch*(1-v);
+    ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,2,0,Math.PI*2);ctx.fill();
+  });
+}
+function drawDashedLine(ctx,arr,padL,padT,cw,ch,color){
+  const n=arr.length;
+  ctx.strokeStyle=color;ctx.lineWidth=1.8;ctx.setLineDash([4,3]);
+  ctx.beginPath();
+  arr.forEach((v,i)=>{
+    const x=padL+cw*i/(n-1);const y=padT+ch*(1-v);
+    if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+  });
+  ctx.stroke();ctx.setLineDash([]);
+}
+
+/* ---------- 渲染：舞台六维评分柱状图 ---------- */
+function renderStageScoresPlaceholder(){
+  const box=$('stageScores');
+  const labels=(INDUSTRIES[state.industry]||INDUSTRIES.auto).radarLabels;
+  $('ssBars').innerHTML = labels.map(lb=>
+    `<div class="ss-row"><span class="ss-name">${lb}</span><div class="ss-track"><div class="ss-fill" style="width:0"></div></div><span class="ss-val">--</span></div>`
+  ).join('');
+  $('ssAdvice').innerHTML = '';
+  box.classList.remove('show');
+}
+function renderStageScores(radar){
+  const box=$('stageScores');
+  if(!radar||!radar.length){ box.classList.remove('show'); return; }
+  const labels=(INDUSTRIES[state.industry]||INDUSTRIES.auto).radarLabels;
+  const items=labels.map((lb,i)=>({label:lb,v:Number(radar[i]||0)}));
+  const maxV=Math.max(...items.map(d=>d.v));
+  const minV=Math.min(...items.map(d=>d.v));
+  const top=items.find(d=>d.v===maxV);
+  const low=items.find(d=>d.v===minV);
+  $('ssBars').innerHTML = items.map(d=>{
+    const cls = d.v===maxV?' top':(d.v===minV?' low':'');
+    const pct = Math.round(d.v*100);
+    return `<div class="ss-row${cls}"><span class="ss-name">${d.label}</span><div class="ss-track"><div class="ss-fill" style="width:0"></div></div><span class="ss-val">${pct}</span></div>`;
+  }).join('');
+  $('ssAdvice').innerHTML =
+    `<div class="ss-tip up"><span class="badge">最高</span><span class="txt"><b>${top.label}</b>（${Math.round(top.v*100)}）为核心竞争优势，可继续强化。</span></div>` +
+    `<div class="ss-tip down"><span class="badge">最低</span><span class="txt"><b>${low.label}</b>（${Math.round(low.v*100)}）为明显短板，建议优先改进。</span></div>`;
+  box.classList.add('show');
+  // 触发柱状图填充动画
+  requestAnimationFrame(()=>{
+    const fills=box.querySelectorAll('.ss-fill');
+    items.forEach((d,i)=>{
+      if(fills[i]) fills[i].style.width = Math.round(d.v*100)+'%';
+    });
+  });
+}
+
+/* ---------- 渲染：雷达 ---------- */
+function renderRadar(vals, canvasId, opts){
+  opts=opts||{};
+  const c=$(canvasId||'radarChart');
+  if(!c)return;
+  const {ctx,w,h}=setupChart(c);
+  const pad=opts.pad||28;
+  const cx=w/2,cy=h/2,R=Math.max(10,Math.min(w,h)/2-pad);
+  const ind=INDUSTRIES[state.industry];
+  const N=ind.radarLabels.length;
+  const fs=opts.fontSize||9;
+  const lblGap=opts.labelGap||14;
+  const dotR=opts.dotR||2.5;
+  ctx.clearRect(0,0,w,h);
+  // 网格
+  for(let r=1;r<=4;r++){
+    ctx.strokeStyle='rgba(148,163,184,'+(0.05+r*0.02)+')';
+    ctx.beginPath();
+    for(let i=0;i<N;i++){
+      const a=-Math.PI/2+i*2*Math.PI/N;
+      const x=cx+Math.cos(a)*R*r/4,y=cy+Math.sin(a)*R*r/4;
+      if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.closePath();ctx.stroke();
+  }
+  // 轴
+  for(let i=0;i<N;i++){
+    const a=-Math.PI/2+i*2*Math.PI/N;
+    ctx.strokeStyle='rgba(148,163,184,0.1)';
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R);ctx.stroke();
+    // 标签
+    ctx.fillStyle='#8AA0BD';ctx.font=fs+'px Noto Sans SC';ctx.textAlign='center';
+    ctx.fillText(ind.radarLabels[i],cx+Math.cos(a)*(R+lblGap),cy+Math.sin(a)*(R+lblGap)+3);
+  }
+  if(!vals||!vals.length)return;
+  // 数据
+  ctx.fillStyle='rgba(0,229,255,0.18)';ctx.strokeStyle='rgba(0,229,255,0.9)';ctx.lineWidth=1.8;
+  ctx.beginPath();
+  vals.forEach((v,i)=>{
+    const a=-Math.PI/2+i*2*Math.PI/N;
+    const x=cx+Math.cos(a)*R*v,y=cy+Math.sin(a)*R*v;
+    if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+  });
+  ctx.closePath();ctx.fill();ctx.stroke();
+  // 点
+  vals.forEach((v,i)=>{
+    const a=-Math.PI/2+i*2*Math.PI/N;
+    const x=cx+Math.cos(a)*R*v,y=cy+Math.sin(a)*R*v;
+    ctx.fillStyle='#00E5FF';ctx.beginPath();ctx.arc(x,y,dotR,0,Math.PI*2);ctx.fill();
+  });
+}
+
+/* ---------- 调参联动（仅预测口碑曲线，不请求 LLM） ---------- */
+function predictWowFromParams(params){
+  const rangeScore=clamp((params.range-400)/600,0,1);
+  const priceScore=clamp(1-(params.price-10)/50,0,1);
+  const chargeScore=clamp(1-(params.charge-5)/55,0,1);
+  const smartScore=params.smart/10;
+  const spaceScore=params.space/10;
+  const luxScore=params.lux/10;
+  const overall=(rangeScore*0.22+priceScore*0.20+chargeScore*0.13+smartScore*0.18+spaceScore*0.15+luxScore*0.12);
+  return {
+    overall,
+    wow24: genWowSeries(24, overall, 1),
+    wow7:  genWowSeries(28, overall, 7),
+    wow30: genWowSeries(30, overall, 30),
+  };
+}
+
+let tuneTimer;
+function onTune(){
+  if(state.phase!=='STABLE'&&state.phase!=='TUNING')return;
+  state.phase='TUNING';
+  $('labTag').textContent='预测中…';
+  $('labTag').style.color='var(--amber)';
+  clearTimeout(tuneTimer);
+  tuneTimer=setTimeout(()=>{
+    const newParams={
+      range:+$('labRange').value,
+      price:+$('labPrice').value,
+      charge:+$('labCharge').value,
+      smart:+$('labSmart').value,
+      space:+$('labSpace').value,
+      lux:+$('labLux').value
+    };
+    state.params=newParams;
+    // 仅预测口碑传播曲线，不调用 LLM；赞赏/吐槽/漏斗/雷达等保持不变
+    const pred=predictWowFromParams(newParams);
+    const tuned=Object.assign({}, state.baseline, {
+      wow24: pred.wow24,
+      wow7:  pred.wow7,
+      wow30: pred.wow30,
+      _tuned: true
+    });
+    state.current=tuned;
+    // 仅重绘口碑曲线（橙色虚线对比）
+    drawWowChart(state.baseline);
+    state.phase='STABLE';
+    $('labTag').textContent='需重新分析';
+    $('labTag').style.color='var(--amber)';
+    $('stageMeta').textContent='TUNING · 口碑曲线已预测，需重新分析';
+    toast('口碑曲线已预测 · 点击"重新分析"获取完整数据');
+  },350);
+}
+
+function updateKPI(data,isBaseline){
+  const b=state.baseline||data;
+  const cells=['kpiCellNps','kpiCellIntent','kpiCellReach'];
+  cells.forEach(id=>$(id).classList.add('active'));
+  $('kpiNps').textContent=data.nps;
+  $('kpiNps').classList.remove('dim');
+  $('kpiIntent').textContent=data.prebuy+'%';
+  $('kpiIntent').classList.remove('dim');
+  $('kpiReach').textContent=data.reach;
+  $('kpiReach').classList.remove('dim');
+  if(isBaseline){
+    setDelta('kpiNpsD','基线','');
+    setDelta('kpiIntentD','基线','');
+    setDelta('kpiReachD','基线','');
+  }else{
+    const dN=data.nps-b.nps,dI=data.prebuy-b.prebuy,dR=data.reach-b.reach;
+    setDelta('kpiNpsD',(dN>=0?'+':'')+dN,dN>0?'up':(dN<0?'down':''));
+    setDelta('kpiIntentD',(dI>=0?'+':'')+dI+'%',dI>0?'up':(dI<0?'down':''));
+    setDelta('kpiReachD',(dR>=0?'+':'')+dR,dR>0?'up':(dR<0?'down':''));
+  }
+}
+function setDelta(id,text,cls){
+  $(id).textContent=text;
+  $(id).className='kpi-delta'+(cls?' '+cls:'');
+}
+
+/* ---------- 虚拟用户自我进化 ---------- */
+const EVO_TEMPLATES={
+  news:[
+    '{uid} 阅读了《{topic}》资讯，记忆流 +1',
+    '{uid} 浏览了 {source} 热榜，关注到「{topic}」',
+    '{uid} 收到 KOL 推送，正在阅读《{topic}》评测'
+  ],
+  reflect:[
+    '{uid} 进行反思：相比上月，对续航的关注度上升 12%',
+    '{uid} 反思：充电速度仍是决策关键因子',
+    '{uid} 调整偏好权重，智能驾驶权重 +0.08',
+    '{uid} 反思：价格敏感度受近期收入波动影响'
+  ],
+  memory:[
+    '{uid} 记忆流更新：补充 {n} 条同价位车型对比',
+    '{uid} 写入记忆：朋友提车后口碑正向',
+    '{uid} 记忆合并：合并 3 条重复快充讨论',
+    '{uid} 记忆衰减：30 天前的负面情绪权重 -0.05'
+  ],
+  action:[
+    '{uid} 行动意向变更：中立 → 兴趣',
+    '{uid} 行动意向变更：兴趣 → 试驾',
+    '{uid} 在社群分享正向评价，影响 14 人',
+    '{uid} 加入「{topic}」讨论组，发表 2 条评论',
+    '{uid} 行动意向降级：兴趣 → 中立（价位偏高）'
+  ]
+};
+const EVO_TOPICS={
+  auto:['固态电池量产进展','城市NOA开城计划','800V高压快充网络','新势力销量榜单','汽车以旧换新政策','智能座舱芯片算力战'],
+  elec:['旗舰芯片性能跑分','折叠屏耐用性测试','AI手机端侧大模型','快充协议统一进展','生态协同新功能'],
+  fmcg:['成分党崛起趋势','新消费品牌融资','健康轻食赛道','国货美妆出海','短剧带货新玩法']
+};
+const NICK_PREFIX=['都市','北岸','南山','晚风','极客','静谧','追光','星河','远行','清风','银翼','苍穹'];
+const NICK_SUFFIX=['旅人','观察者','玩家','匠人','思考者','驾驶者','工程师','探路者','评论家','梦想家'];
+
+function genNick(){
+  const ind=INDUSTRIES[state.industry];
+  return NICK_PREFIX[randi(0,NICK_PREFIX.length-1)]+NICK_SUFFIX[randi(0,NICK_SUFFIX.length-1)]+'_'+randi(10,99);
+}
+function genEvoEvent(){
+  const types=['news','reflect','memory','action'];
+  const type=types[randi(0,3)];
+  const ind=INDUSTRIES[state.industry];
+  const uid=genNick();
+  const topic=EVO_TOPICS[state.industry][randi(0,EVO_TOPICS[state.industry].length-1)];
+  const source=ind.sources[randi(0,ind.sources.length-1)];
+  const n=randi(2,8);
+  let tpl=EVO_TEMPLATES[type][randi(0,EVO_TEMPLATES[type].length-1)];
+  const text=tpl.replace('{uid}',`<span class="uid">@${uid}</span>`).replace('{topic}',topic).replace('{source}',source).replace('{n}',n);
+  const t=new Date();
+  const ts=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+':'+String(t.getSeconds()).padStart(2,'0');
+  return {type,text,ts};
+}
+function pushEvoEvent(){
+  const ev=genEvoEvent();
+  const stream=$('evoStream');
+  const el=document.createElement('div');
+  el.className='evo-item '+ev.type;
+  const tagMap={news:'资讯',reflect:'反思',memory:'记忆',action:'行动'};
+  el.innerHTML=`<span class="evo-tag">${tagMap[ev.type]}</span><span class="evo-time">${ev.ts}</span><span class="evo-text">${ev.text}</span>`;
+  stream.appendChild(el);
+  requestAnimationFrame(()=>el.classList.add('show'));
+  while(stream.children.length>40) stream.removeChild(stream.firstChild);
+  stream.scrollTop=stream.scrollHeight;
+}
+function startEvolution(){
+  if(state.evoTimer)return;
+  $('evoTag').textContent='进化中';
+  $('evoTag').style.color='var(--purple)';
+  // 预填几条
+  for(let i=0;i<4;i++)setTimeout(pushEvoEvent,i*200);
+  state.evoTimer=setInterval(pushEvoEvent,2600);
+}
+
+/* ---------- 重置 ---------- */
+function resetAll(){
+  clearCreateTimers();
+  clearInterval(state.evoTimer);state.evoTimer=null;
+  clearInterval(state.simTimer);state.simTimer=null;
+  state.phase='IDLE';state.baseline=null;state.current=null;state.bubbles=[];
+  $('stageEmpty').style.display='flex';
+  $('stageReady').classList.remove('show');
+  $('stageScores').classList.remove('show');
+  $('stageLog').style.display='none';
+  $('stageLog').classList.remove('collapsed');
+  $('logBody').innerHTML='';
+  $('stageCounter').style.display='none';
+  $('stageMeta').textContent='IDLE · 待创建';
+  $('marketPulse').className='pulse';
+  $('marketStatusText').textContent='虚拟市场未创建';
+  $('userCount').textContent='0';
+  $('simClock').textContent='--:--:--';
+  setPhase(-1);
+  // 重置仪表盘
+  ['sPos','sNeu','sNeg'].forEach(id=>$(id).style.width='0');
+  $('sPosV').textContent='0%';$('sNeuV').textContent='0%';$('sNegV').textContent='0%';
+  $('sentScore').textContent='NPS --';
+  renderPraise([]);renderComplain([]);renderFunnel([0,0,0,0,0]);
+  const c=$('wowChart');c.getContext('2d').clearRect(0,0,c.width,c.height);
+  const r=$('radarChart');r.getContext('2d').clearRect(0,0,r.width,r.height);
+  const sr=$('stageRadarChart');sr.getContext('2d').clearRect(0,0,sr.width,sr.height);
+  $('insightTag').textContent='待分析';$('insightTag').style.color='var(--amber)';
+  $('labTag').textContent='数据稳定后可调参';$('labTag').style.color='var(--amber)';
+  $('evoTag').textContent='待启动';$('evoTag').style.color='var(--purple)';
+  $('evoStream').innerHTML='';
+  // 重置 KPI 突出条
+  ['kpiCellNps','kpiCellIntent','kpiCellReach'].forEach(id=>$(id).classList.remove('active'));
+  $('kpiNps').textContent='--';$('kpiNps').classList.add('dim');
+  $('kpiIntent').textContent='--';$('kpiIntent').classList.add('dim');
+  $('kpiReach').textContent='--';$('kpiReach').classList.add('dim');
+  setDelta('kpiNpsD','待分析','');setDelta('kpiIntentD','待分析','');setDelta('kpiReachD','待分析','');
+  $('analyzeBtn').disabled=true;
+  $('createMarketBtn').disabled=false;
+  $('createMarketBtn').classList.remove('spinning');
+  applyIndustryAvailability();
+  toast('已重置 · 可重新开始演示');
+}
+
+/* ---------- 行业切换 ---------- */
+async function switchIndustry(key){
+  state.industry=key;
+  toast('已切换至「'+INDUSTRIES[key].name+'」行业');
+  resetAll();
+  await refreshIndustryPersonas();
+}
+
+/* ---------- 初始化 ---------- */
+function init(){
+  state.industry=getInitialIndustry();
+  $('industrySel').value=state.industry;
+  resizeStage();
+  renderPhaseRail();
+  loadDefaultImage();
+  requestAnimationFrame(stageLoop);
+
+  // 行业
+  $('industrySel').addEventListener('change',e=>switchIndustry(e.target.value));
+  // 选项
+  bindSwatches('colorRow',v=>{});
+  bindOptGroup('carTypeRow',v=>{});
+  bindOptGroup('sizeRow',v=>{});
+  bindOptGroup('powerRow',v=>{});
+  bindOptMulti('audRow',v=>{});
+  bindTags('tagsRow',v=>{});
+  // 左侧滑块（与实验室续航/价位双向联动）
+  bindSlider('rangeSlider',v=>{$('rangeVal').textContent=v;$('labRange').value=v;$('labRangeV').textContent=v;});
+  bindSlider('priceSlider',v=>{$('priceVal').textContent=v;$('labPrice').value=v;$('labPriceV').textContent=v;});
+  // 实验室滑块
+  bindSlider('labRange',v=>{$('labRangeV').textContent=v;$('rangeSlider').value=v;$('rangeVal').textContent=v;onTune();});
+  bindSlider('labPrice',v=>{$('labPriceV').textContent=v;$('priceSlider').value=v;$('priceVal').textContent=v;onTune();});
+  bindSlider('labCharge',v=>{$('labChargeV').textContent=v;onTune();});
+  bindSlider('labSmart',v=>{$('labSmartV').textContent=v;onTune();});
+  bindSlider('labSpace',v=>{$('labSpaceV').textContent=v;onTune();});
+  bindSlider('labLux',v=>{$('labLuxV').textContent=v;onTune();});
+  // 按钮
+  $('settingsBtn').addEventListener('click',openSettingsPage);
+  $('createMarketBtn').addEventListener('click',()=>{
+    if(state.hasIndustryPersonas) createVirtualMarket();
+    else openSettingsPage();
+  });
+  $('emptyStartBtn').addEventListener('click',()=>{
+    if(state.hasIndustryPersonas) createVirtualMarket();
+    else openSettingsPage();
+  });
+  $('analyzeBtn').addEventListener('click',analyzeMarket);
+  $('resetBtn').addEventListener('click',resetAll);
+  refreshIndustryPersonas();
+  // 口碑窗口
+  $('wowTabs').addEventListener('click',e=>{
+    if(e.target.classList.contains('card-tab')){
+      $('wowTabs').querySelectorAll('.card-tab').forEach(x=>x.classList.remove('active'));
+      e.target.classList.add('active');
+      state.wowWindow=e.target.dataset.w;
+      if(state.baseline) drawWowChart(state.baseline);
+    }
+  });
+  // 图片上传 → 预览 + 调用多模态视觉识别
+  $('fileInput').addEventListener('change',e=>{
+    const f=e.target.files[0];if(!f)return;
+    const url=URL.createObjectURL(f);
+    state.conceptImage = {
+      sourceType:'upload',
+      name:f.name || '未命名图片',
+      note:'已上传外观图：' + (f.name || '未命名图片')
+    };
+    // 重新上传图片时清空旧的图片识别结果
+    state.visionDescImage = '';
+    const zone=$('uploadZone');
+    zone.classList.add('has-img');
+    zone.innerHTML=`<img class="upload-preview" src="${url}" alt="concept"><div class="upload-overlay">点击更换图片</div>`;
+    zone.addEventListener('click',()=>$('fileInput').click());
+    // 触发独立多模态 LLM 识别
+    callVisionApi(f, 'image');
+  });
+  // 视频上传按钮
+  $('videoUploadBtn').addEventListener('click',()=>$('videoFileInput').click());
+  $('videoFileInput').addEventListener('change',e=>{
+    const f=e.target.files[0];if(!f)return;
+    state.conceptVideo = {name:f.name || '未命名视频', desc:''};
+    state.visionDescVideo = '';
+    $('videoName').textContent = f.name || '未命名视频';
+    $('videoName').classList.add('has-file');
+    $('videoClear').style.display = '';
+    // 触发独立多模态 LLM 识别
+    callVisionApi(f, 'video');
+  });
+  $('videoClear').addEventListener('click',clearVideo);
+  $('visionToggle').addEventListener('click',()=>toggleVisionBody());
+  // 分析报告 Modal 关闭事件
+  $('reportClose').addEventListener('click',closeReportModal);
+  $('reportCloseBtn').addEventListener('click',closeReportModal);
+  $('reportModal').addEventListener('click',e=>{ if(e.target===$('reportModal')) closeReportModal(); });
+  // 日志折叠
+  $('logToggle').addEventListener('click',()=>{
+    $('stageLog').classList.toggle('collapsed');
+  });
+
+  toast('平台已就绪 · 配置概念产品后点击「创建虚拟市场」');
+}
+
+window.addEventListener('load',init);
+window.addEventListener('resize',()=>{
+  resizeStage();
+  if(state.baseline){
+    drawWowChart(state.baseline);
+    const rad=state.current?state.current.radar:state.baseline.radar;
+    renderRadar(rad,'radarChart',{fontSize:9,labelGap:14,dotR:2.5,pad:28});
+    renderRadar(rad,'stageRadarChart',{fontSize:12,labelGap:20,dotR:4,pad:44});
+  }
+});
+</script>
+</body>
+</html>

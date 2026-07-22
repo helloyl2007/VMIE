@@ -1,0 +1,27 @@
+﻿# ===== Flask 后端 =====
+flask>=3.0
+flask-cors>=4.0
+python-dotenv>=1.0
+
+# ===== TinyTroupe 核心依赖 =====
+# 注意：tinytroupe 本身从本地 ./TinyTroupe 目录加载（见 app.py 中的 sys.path 设置）
+# 以下为其运行所需依赖
+pandas>=2.0
+openai>=1.65
+httpx
+tiktoken
+rich
+requests
+chevron
+pydantic>=2.5.0
+textdistance
+scipy
+
+# ===== LlamaIndex（TinyTroupe 用于语义记忆 embedding）=====
+# 仅在调用 read_documents / 语义检索时才真正触发 API；基本流程不会调用
+llama-index>=0.10
+llama-index-embeddings-openai>=0.1
+llama-index-readers-web>=0.1
+pypandoc
+markdown
+IPython
